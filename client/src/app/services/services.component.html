@@ -1,0 +1,52 @@
+<div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+  <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+      <tr>
+        <th scope="col" class="px-6 py-3">
+          Nombre del servicio
+        </th>
+        <th scope="col" class="px-6 py-3">
+          Duración
+        </th>
+        <th scope="col" class="px-6 py-3">
+          Precio
+        </th>
+        <th scope="col" class="px-6 py-3">
+          Acción
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for(service of allServices; track service){
+      <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
+        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+          {{service.title}}
+        </th>
+        <td class="px-6 py-4">
+          {{service.duration}} min
+        </td>
+        <td class="px-6 py-4">
+          {{service.price | currency:'EUR'}}
+        </td>
+        <td class="flex gap-2 px-6 py-4">
+          <button data-modal-target="updateServiceModal" data-modal-toggle="updateServiceModal"
+            (click)="handleActiveModal(service.id ?? '')"
+            class="block text-white bg-orange-600 hover:bg-orange-800 focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 text-center"
+            type="button">
+            <i class="fas fa-pencil-alt"></i>
+          </button>
+          <button type="button" (click)="handleDeleteService(service.id ?? '')"
+            class="focus:outline-none text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </td>
+      </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div id="updateServiceModal" tabindex="-1" aria-hidden="true"
+  class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+  <app-update-service [serviceFormData]="serviceFormData"></app-update-service>
+</div>

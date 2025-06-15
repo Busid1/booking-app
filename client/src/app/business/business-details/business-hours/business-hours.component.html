@@ -1,0 +1,32 @@
+<form (ngSubmit)="handleSaveBusinessHours($event)" class="flex flex-col gap-6">
+  <div *ngFor="let day of dayOfWeek; let i = index" class="border p-4 rounded-lg bg-white shadow-sm">
+    <div class="flex justify-between items-center mb-2">
+      <h3 class="text-lg font-semibold">{{ day }}</h3>
+      <label class="flex items-center gap-2 bg-slate-400 p-2 rounded">
+        <input type="checkbox" name="closed{{day}}" [(ngModel)]="formData[i].isClosed">
+        Cerrado todo el día
+      </label>
+    </div>
+
+    <div *ngIf="!formData[i].isClosed">
+      <div *ngFor="let timeBlock of formData[i].timeBlocks; let x = index" class="mb-4">
+        <app-timePicker [label]="'Hora de apertura:'" [value]="timeBlock.openTime"
+          (timeChanged)="handleTimeChange(i, x, 'openTime', $event)">
+        </app-timePicker>
+        <app-timePicker [label]="'Hora de cierre:'" [value]="timeBlock.closeTime"
+          (timeChanged)="handleTimeChange(i, x, 'closeTime', $event)">
+        </app-timePicker>
+        <button type="button" class="mt-2 bg-red-500 text-white rounded-lg py-2 px-6"
+          (click)="handleRemoveNewTime(i, x)">Quitar franja</button>
+      </div>
+
+      <button type="button" class="mt-4 bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700"
+        (click)="handleAddNewTime(i)">Añadir horario</button>
+    </div>
+  </div>
+
+  <button type="submit" class="mt-4 w-full bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700">
+    Guardar horario
+    <i class="ml-2 fas fa-save"></i>
+  </button>
+</form>
