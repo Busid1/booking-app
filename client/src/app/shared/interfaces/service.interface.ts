@@ -3,6 +3,6 @@ export interface ServiceInterface {
     title: string;
     price: number;
     duration: number;
-    description: string;
-    image: string;
+    description?: string;
+    image?: string;
 }

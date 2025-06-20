@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, Param, Put, ValidationPipe } from '@nestjs/common';
 import { BusinessHoursService } from './business-hours.service';
-import { BusinessHoursDto } from 'src/dto/business-hours';
+import { BusinessHoursDto } from 'src/dto/business-hours.dto';
 
 @Controller('business-hours')
 export class BusinessHoursController {

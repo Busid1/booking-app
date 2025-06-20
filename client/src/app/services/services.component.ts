@@ -6,20 +6,29 @@ import { ServiceInterface } from '../shared/interfaces/service.interface';
 import { Modal } from 'flowbite';
 import { UpdateServiceComponent } from '../admin/crud/update-service/update-service.component';
 import Swal from 'sweetalert2';
+import { AuthService } from '../auth/auth.service';
+import { AppointmentComponent } from '../appointment/appointment.component';
+import { SharedService } from '../shared/services/shared.service';
 
 @Component({
   selector: 'app-services',
   templateUrl: './services.component.html',
   standalone: true,
-  imports: [CurrencyPipe, UpdateServiceComponent],
+  imports: [CurrencyPipe, UpdateServiceComponent, AppointmentComponent],
 })
 
 export class ServicesComponent implements AfterViewInit {
+  constructor(private servicesService: ServicesService, private authService: AuthService, private sharedService: SharedService) { }
+
   private modal: Modal | null = null;
   allServices: ServiceInterface[] = [];
   serviceFormData: ServiceInterface | null = null;
+  serviceId: string = "";
+  isLoadingModal: boolean = false;
 
-  constructor(private servicesService: ServicesService) { }
+  isAdmin() {
+    return this.authService.getUserRole();
+  }
 
   async ngOnInit() {
     this.allServices = await firstValueFrom(this.servicesService.getServices());
@@ -27,30 +36,48 @@ export class ServicesComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     const updateServiceModalElement = document.querySelector('#updateServiceModal');
+    const datepickerModal = document.querySelector('#datepickerModal');
 
-    if (updateServiceModalElement) {
+    if (updateServiceModalElement && this.isAdmin()) {
       this.modal = new Modal(updateServiceModalElement as HTMLElement, {
         placement: 'center',
         backdrop: 'dynamic',
         backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
       });
-    } else {
+    } else if (datepickerModal) {
+      this.modal = new Modal(datepickerModal as HTMLElement, {
+        placement: 'center',
+        backdrop: 'dynamic',
+        backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+      });
+    }
+    else {
       console.error('Modal element not found in the DOM');
     }
   }
 
   async handleActiveModal(id: string) {
-    if (id) {
-      const response = await firstValueFrom(this.servicesService.getService(id));
-      this.serviceFormData = response;
-    }
+    this.isLoadingModal = true;
 
-    if (this.modal) {
-      this.modal.show();
-    } else {
-      console.error('Modal not initialized.');
+    try {
+      if (id) {
+        const response = await firstValueFrom(this.servicesService.getService(id));
+        this.serviceFormData = response;
+        this.sharedService.setSelectedService(id);
+      }
+
+      if (this.modal) {
+        this.modal.show();
+      } else {
+        console.error('Modal not initialized.');
+      }
+    } catch (error) {
+      console.error('Error loading modal data', error);
+    } finally {
+      this.isLoadingModal = false;
     }
   }
+
 
   async handleDeleteService(id: string) {
     if (id) {

@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { BusinessHoursDto } from 'src/dto/business-hours';
+import { BusinessHoursDto } from 'src/dto/business-hours.dto';
 
 @Injectable()
 export class BusinessHoursService {

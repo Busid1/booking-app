@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { ServiceInterface } from '../../../shared/interfaces/service.interface';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-update-service',
@@ -13,7 +14,7 @@ import { CommonModule } from '@angular/common';
   styleUrl: './update-service.component.scss'
 })
 
-export class UpdateServiceComponent{
+export class UpdateServiceComponent {
   constructor(private servicesService: ServicesService) { }
   @Input() serviceFormData: ServiceInterface | null = null;
 
@@ -25,7 +26,7 @@ export class UpdateServiceComponent{
     }
     if (field === "duration" && value.length > 4) {
       (event.target as HTMLInputElement).value = value;
-    }    
+    }
   }
 
   async handleSubmit(event: Event) {
@@ -36,6 +37,11 @@ export class UpdateServiceComponent{
         return;
       }
       await firstValueFrom(this.servicesService.updateService(this.serviceFormData));
+      Swal.fire({
+        title: "Servicio actualizado correctamente",
+        confirmButtonText: "Ok",
+        confirmButtonColor: "#22c55e",
+      })
     } catch (error) {
       console.error('Error updating service:', error);
     }

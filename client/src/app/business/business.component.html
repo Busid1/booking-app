@@ -1,4 +1,7 @@
 <div class="flex flex-col gap-3 ">
     <app-business-card></app-business-card>
-    <app-business-details></app-business-details>
+    @if(isAdmin()){
+        <app-business-details></app-business-details>
+    }
+    <app-services></app-services>
 </div>

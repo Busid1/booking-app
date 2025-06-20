@@ -1,7 +1,11 @@
-import { IsString, IsNumber } from 'class-validator';
+import { IsString, IsNumber, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ServiceDto {
+  @IsOptional()
+  @IsString()
+  id: string
+
   @IsString()
   title: string;
 
@@ -9,13 +13,15 @@ export class ServiceDto {
   @Type(() => Number)
   price: number;
 
-  @IsString()
-  description: string;
-
-  @IsString()
-  image: string;
-
   @IsNumber()
   @Type(() => Number)
   duration: number;
+
+  @IsString()
+  @IsOptional()
+  description: string;
+
+  @IsString()
+  @IsOptional()
+  image: string;
 }
