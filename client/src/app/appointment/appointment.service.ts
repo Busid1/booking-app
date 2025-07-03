@@ -19,7 +19,21 @@ export class AppointmentService {
         });
     }
 
-    getService(): Observable<AppointmentInterface> {
+    getAppointments(): Observable<AppointmentInterface> {
         return this.http.get<AppointmentInterface>(`${environment.apiUrl}/get-appointments`);
+    }
+
+    getUserAppointments(): Observable<AppointmentInterface> {
+        return this.http.get<AppointmentInterface>(`${environment.apiUrl}/get-user-appointments`, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('authToken')}`
+            }
+        });
+    }
+
+    deleteAppointment(id: string): Observable<void> {
+        return this.http.delete<void>(`${environment.apiUrl}/delete-appointment`, {
+            body: { id: id }
+        });
     }
 }

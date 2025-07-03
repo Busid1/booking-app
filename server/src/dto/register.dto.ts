@@ -10,7 +10,4 @@ export class RegisterDto {
 
     @IsString()
     name: string;
-
-    @IsString()
-    role: string;
 }

@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { BusinessHoursInterface } from '../../../shared/interfaces/business-hours.interface';
 import { firstValueFrom } from 'rxjs';
-import { ServicesService } from '../../../admin/crud/services.service';
+import { ServicesService } from '../../../dashboard/admin/crud/services.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TimePickerComponent } from './timePicker/timePicker.component';
@@ -16,6 +16,12 @@ import Swal from 'sweetalert2';
 
 export class BusinessHoursComponent implements OnInit {
   constructor(private businessHoursService: ServicesService) { }
+
+  editBusinessHours: boolean = false
+  handleEditBusinessHours(){
+    this.editBusinessHours = !this.editBusinessHours
+  }
+
   formData: {
     [key: number]: {
       isClosed: boolean;

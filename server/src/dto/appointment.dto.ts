@@ -1,14 +1,14 @@
-import { IsDateString, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class AppointmentDto {
-    @IsDateString()
-    date: Date;
+    @IsString()
+    date: string;
 
-    @IsDateString()
-    startTime: Date;
+    @IsString()
+    startTime: string;
 
-    @IsDateString()
-    endTime: Date;
+    @IsString()
+    endTime: string;
 
     @IsString()
     serviceId: string

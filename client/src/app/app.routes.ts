@@ -9,7 +9,16 @@ export const routes: Routes = [
     {
         path: 'auth',
         loadChildren: () => import('./auth/auth.routes'),
-        canActivate: [AuthGuard]
+    },
+    {
+        path: '',
+        loadChildren: () => import('./dashboard/dashboard.routes'),
+        canActivate: [AuthGuard],
+        canMatch: [AuthGuard]
+    },
+    {
+        path: 'mis-citas',
+        loadComponent: () => import('./dashboard/user/appointments/appointments.component').then(m => m.AppointmentsComponent),
     },
     {
         path: '**',

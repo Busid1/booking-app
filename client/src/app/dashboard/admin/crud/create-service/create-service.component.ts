@@ -1,7 +1,9 @@
-import { Component } from '@angular/core';
-import { ServiceInterface } from '../../../shared/interfaces/service.interface';
+import { Component, EventEmitter, Output } from '@angular/core';
+import { ServiceInterface } from '../../../../shared/interfaces/service.interface';
 import { firstValueFrom } from 'rxjs';
 import { ServicesService } from '../services.service';
+import { SharedService } from '../../../../shared/services/shared.service';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-create-service',
@@ -11,7 +13,12 @@ import { ServicesService } from '../services.service';
   styleUrl: './create-service.component.scss'
 })
 export class CreateServiceComponent {
-  constructor(private servicesService: ServicesService) { }
+  constructor(private servicesService: ServicesService, private sharedService: SharedService) { }
+  @Output() closeModal = new EventEmitter<void>();
+
+  onClose() {
+    this.closeModal.emit();
+  }
 
   serviceFormData: ServiceInterface = {
     title: '',
@@ -37,6 +44,13 @@ export class CreateServiceComponent {
     event.preventDefault();
     try {
       await firstValueFrom(this.servicesService.createService(this.serviceFormData));
+      Swal.fire({
+        title: "Servicio creado correctamente",
+        confirmButtonText: "Ok",
+        confirmButtonColor: "#22c55e",
+      })
+      await this.sharedService.loadAllServices();
+      this.onClose();
     } catch (error) {
       console.error('Error creating service:', error);
     }

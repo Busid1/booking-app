@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Delete } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
 import { AppointmentDto } from 'src/dto/appointment.dto';
 import { GetUser } from 'src/auth/get-user.decorator';
@@ -12,7 +12,7 @@ export class AppointmentController {
     @UseGuards(AuthGuard('jwt'))
     async createAppointment(
         @Body() appointmentDto: AppointmentDto,
-        @GetUser() user: {id: string},
+        @GetUser() user: { id: string },
     ) {
         return this.appointmentService.createAppointment(appointmentDto, user.id);
     }
@@ -20,5 +20,16 @@ export class AppointmentController {
     @Get('get-appointments')
     getAppointments() {
         return this.appointmentService.getAppointments();
+    }
+
+    @Get('get-user-appointments')
+    @UseGuards(AuthGuard('jwt'))
+    getUserAppointments(@GetUser() user: { id: string }) {
+        return this.appointmentService.getUserAppointments(user.id);
+    }
+
+    @Delete('delete-appointment')
+    deleteAppointment(@Body('id') id: string) {
+        return this.appointmentService.deleteAppointment(id);
     }
 }

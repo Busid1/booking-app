@@ -53,17 +53,10 @@
   </table>
 </div>
 @if(isLoadingModal){
-  <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-    <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-white"></div>
-  </div>
+<div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+  <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-white"></div>
+</div>
 }
 
-<div id="updateServiceModal" tabindex="-1" aria-hidden="true"
-  class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-  <app-update-service [serviceFormData]="serviceFormData"></app-update-service>
-</div>
-
-<div id="datepickerModal" tabindex="-1" aria-hidden="true"
-  class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-  <app-appointment></app-appointment>
-</div>
+<app-update-service [serviceFormData]="serviceFormData" (closeModal)="handleCloseModal()"></app-update-service>
+<app-appointment></app-appointment>

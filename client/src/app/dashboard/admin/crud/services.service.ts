@@ -1,9 +1,9 @@
 import { inject, Injectable } from '@angular/core';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
-import { ServiceInterface } from '../../shared/interfaces/service.interface';
+import { ServiceInterface } from '../../../shared/interfaces/service.interface';
 import { Observable } from 'rxjs';
-import { BusinessHoursInterface } from '../../shared/interfaces/business-hours.interface';
+import { BusinessHoursInterface } from '../../../shared/interfaces/business-hours.interface';
 
 @Injectable({
     providedIn: 'root'

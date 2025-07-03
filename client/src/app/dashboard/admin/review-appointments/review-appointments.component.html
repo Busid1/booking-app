@@ -1,0 +1,41 @@
+<div class="flex flex-col gap-5 p-5">
+    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+            <tr>
+                <th scope="col" class="px-6 py-3">
+                    Servicio
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    Fecha
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    Hora
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    Precio
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @if(appointmentsData.length > 0){
+                @for(appointment of appointmentsData; track appointment){
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                        {{appointment.service.title}}
+                    </th>
+                    <td class="px-6 py-4">{{appointment.date}}</td>
+                    <td class="px-6 py-4">{{appointment.startTime}} - {{appointment.endTime}}</td>
+                    <td class="px-6 py-4">{{appointment.service.price | currency: "EUR"}}
+                    <td>
+                </tr>
+                }
+            }
+            @else {
+                <tr class="bg-gray-800 w-full text-center">
+                    <th colspan="4" class="p-5 text-lg">Todavía no hay citas</th>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <app-calendar [appointments]="appointmentsData"></app-calendar>
+</div>

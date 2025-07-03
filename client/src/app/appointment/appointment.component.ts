@@ -5,10 +5,11 @@ import { CommonModule } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import { AppointmentInterface } from '../shared/interfaces/appointment.interface';
 import { ServiceInterface } from '../shared/interfaces/service.interface';
-import { convertRangeToDates, toMinutes, toTimeString } from '../shared/services/time.utils';
-import { ServicesService } from '../admin/crud/services.service';
+import { toMinutes, toTimeString } from '../shared/services/time.utils';
+import { ServicesService } from '../dashboard/admin/crud/services.service';
 import { SharedService } from '../shared/services/shared.service';
 import { BusinessHoursInterface } from '../shared/interfaces/business-hours.interface';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-appointment',
@@ -16,19 +17,21 @@ import { BusinessHoursInterface } from '../shared/interfaces/business-hours.inte
   standalone: true,
   imports: [DatePickerComponent, CommonModule]
 })
+
 export class AppointmentComponent {
   constructor(private appointmentService: AppointmentService, private servicesService: ServicesService, private sharedService: SharedService) { }
   currentStep = 1;
-  
   selectedServiceId: string = ""
+
+  appointmentData: AppointmentInterface = {
+    date: '',
+    startTime: '',
+    endTime: '',
+    serviceId: ''
+  };
+
   selectedServiceData: ServiceInterface = {
     title: '', price: 0, duration: 0, description: '', image: ''
-  };
-  appointmentData: AppointmentInterface = {
-    date: new Date(),
-    startTime: new Date(),
-    endTime: new Date(),
-    serviceId: this.selectedServiceId
   };
 
   appointmentsAvailable: string[] = [];
@@ -36,29 +39,39 @@ export class AppointmentComponent {
   dateHourAppointment: string | null = null;
 
   nextStep() {
-    if (this.currentStep < 3) this.currentStep++;
+    if (this.currentStep < 2) this.currentStep++;
+  }
+
+  prevStep() {
+    this.currentStep = 1
   }
 
   async handleReserveAppointment(event: Event) {
     event.preventDefault();
     const token = localStorage.getItem("authToken") || "";
-    await firstValueFrom(this.appointmentService.createAppointment(this.appointmentData, token));
-    console.log(this.appointmentData);
-    
+    try {
+      await firstValueFrom(this.appointmentService.createAppointment(this.appointmentData, token));
+      Swal.fire({
+        title: "Cita reservada correctamente",
+        confirmButtonText: "Ok",
+        confirmButtonColor: "#22c55e",
+      })
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   async onDateSelected(dateStr: string) {
     this.dateAppointment = dateStr;
-    this.appointmentData.date = new Date(dateStr);
+    this.appointmentData.date = dateStr;
     await this.loadAvailableSlots();
   }
 
   onHourSelected(hour: string) {
     this.dateHourAppointment = hour;
     const end = toTimeString(toMinutes(hour) + this.selectedServiceData.duration);
-    const { start, end: endDate } = convertRangeToDates(this.dateAppointment!, `${hour} - ${end}`);
-    this.appointmentData.startTime = start;
-    this.appointmentData.endTime = endDate;
+    this.appointmentData.startTime = hour;
+    this.appointmentData.endTime = end;
   }
 
   generateTimeSlots(businessHours: BusinessHoursInterface, serviceDurationMinutes: number): string[] {
@@ -102,6 +115,6 @@ export class AppointmentComponent {
       this.appointmentData.serviceId = id;
 
       await this.loadAvailableSlots();
-    });
+    });    
   }
 } 

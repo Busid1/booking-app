@@ -37,8 +37,31 @@ export class AppointmentService {
         });
     }
 
-
     async getAppointments() {
+        return this.prismaService.appointment.findMany({
+            include: {
+                service: true,
+                user: true
+            }
+        })
+    }
 
+    async getUserAppointments(userId: string) {
+        return this.prismaService.appointment.findMany({
+            where: { userId },
+            include: {
+                service: true,
+            }
+        })
+    }
+
+    async deleteAppointment(id: string) {
+        try {
+            await this.prismaService.appointment.delete({
+                where: { id },
+            });
+        } catch (error) {
+            throw new BadRequestException('Error deleting appointment');
+        }
     }
 }

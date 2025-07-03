@@ -10,10 +10,10 @@ import { ServicesComponent } from "../services/services.component";
   imports: [BusinessCardComponent, BusinessDetailsComponent, ServicesComponent],
   templateUrl: './business.component.html',
 })
-export class BusinessComponent{
-  constructor(private authService: AuthService) {}
+export class BusinessComponent {
+  constructor(private authService: AuthService) { }
 
-  isAdmin(){
-    return this.authService.getUserRole();
+  isAdmin() {
+    return this.authService.isAdmin();
   }
 }

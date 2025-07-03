@@ -16,8 +16,8 @@ export default class HeaderComponent {
     return this.authService.isLoggedIn();
   }
 
-  getUserRole() {
-    return this.authService.getUserRole();
+  isAdmin() {
+    return this.authService.isAdmin();
   }
 
   logout() {

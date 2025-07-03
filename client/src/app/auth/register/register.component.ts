@@ -28,6 +28,8 @@ export default class RegisterComponent {
 
     try {
       const response: any = await firstValueFrom(this.authService.registerUser(email, password, name));
+      console.log(response);
+      
       const token = response.authToken;
       const role = response.role;
 

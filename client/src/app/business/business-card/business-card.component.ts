@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
-import { AdminButtonsComponent } from '../../admin/admin-buttons/admin-buttons.component';
+import { AdminButtonsComponent } from '../../dashboard/admin/admin-buttons/admin-buttons.component';
 
 @Component({
   selector: 'app-business-card',
@@ -13,6 +13,6 @@ export default class BusinessCardComponent{
   constructor(private authService: AuthService) { }
   
   isAdmin(){
-    return this.authService.getUserRole();
+    return this.authService.isAdmin();
   }
 }

@@ -1,12 +1,12 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { ServiceInterface } from '../../shared/interfaces/service.interface';
-import { CurrencyPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 
 @Component({
   selector: 'app-datePicker',
   templateUrl: './datePicker.component.html',
   standalone: true,
-  imports: [CurrencyPipe]
+  imports: [CurrencyPipe, CommonModule]
 })
 export class DatePickerComponent {
   @Input() appointmentsAvailable: string[] = [];
@@ -16,6 +16,16 @@ export class DatePickerComponent {
 
   @Output() dateSelected = new EventEmitter<string>();
   @Output() hourSelected = new EventEmitter<string>();
+
+  getTodayDate(): string {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  today: string = this.getTodayDate();
 
   handleDateChange(event: Event) {
     const input = event.target as HTMLInputElement;

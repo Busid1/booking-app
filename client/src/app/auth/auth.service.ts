@@ -41,7 +41,7 @@ export class AuthService{
         localStorage.removeItem("role")
     }
 
-    getUserRole() {
+    isAdmin() {
         const token = localStorage.getItem("authToken");
         if (!token) return null;
 

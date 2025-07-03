@@ -1,10 +1,10 @@
 import { AfterViewInit, Component } from '@angular/core';
-import { ServicesService } from '../admin/crud/services.service';
+import { ServicesService } from '../dashboard/admin/crud/services.service';
 import { firstValueFrom } from 'rxjs';
 import { CurrencyPipe } from '@angular/common';
 import { ServiceInterface } from '../shared/interfaces/service.interface';
 import { Modal } from 'flowbite';
-import { UpdateServiceComponent } from '../admin/crud/update-service/update-service.component';
+import { UpdateServiceComponent } from '../dashboard/admin/crud/update-service/update-service.component';
 import Swal from 'sweetalert2';
 import { AuthService } from '../auth/auth.service';
 import { AppointmentComponent } from '../appointment/appointment.component';
@@ -27,29 +27,17 @@ export class ServicesComponent implements AfterViewInit {
   isLoadingModal: boolean = false;
 
   isAdmin() {
-    return this.authService.getUserRole();
-  }
-
-  async ngOnInit() {
-    this.allServices = await firstValueFrom(this.servicesService.getServices());
+    return this.authService.isAdmin();
   }
 
   ngAfterViewInit(): void {
-    const updateServiceModalElement = document.querySelector('#updateServiceModal');
-    const datepickerModal = document.querySelector('#datepickerModal');
+    const updateServiceModalElement = document.getElementById('updateServiceModal');
+    const datepickerModal = document.getElementById('datepickerModal');
 
     if (updateServiceModalElement && this.isAdmin()) {
-      this.modal = new Modal(updateServiceModalElement as HTMLElement, {
-        placement: 'center',
-        backdrop: 'dynamic',
-        backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
-      });
+      this.modal = new Modal(updateServiceModalElement)
     } else if (datepickerModal) {
-      this.modal = new Modal(datepickerModal as HTMLElement, {
-        placement: 'center',
-        backdrop: 'dynamic',
-        backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
-      });
+      this.modal = new Modal(datepickerModal)
     }
     else {
       console.error('Modal element not found in the DOM');
@@ -78,7 +66,6 @@ export class ServicesComponent implements AfterViewInit {
     }
   }
 
-
   async handleDeleteService(id: string) {
     if (id) {
       Swal.fire({
@@ -98,5 +85,16 @@ export class ServicesComponent implements AfterViewInit {
         }
       });
     }
+  }
+
+  async ngOnInit() {
+    await this.sharedService.loadAllServices();
+    this.sharedService.allServices$.subscribe(data => {
+      this.allServices = data;
+    });
+  }
+
+  handleCloseModal() {
+    this.modal?.hide();
   }
 }
