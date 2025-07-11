@@ -1,4 +1,4 @@
-import { AfterViewInit, Component } from '@angular/core';
+import { AfterViewInit, Component, ViewChild } from '@angular/core';
 import { ServicesService } from '../dashboard/admin/crud/services.service';
 import { firstValueFrom } from 'rxjs';
 import { CurrencyPipe } from '@angular/common';
@@ -32,15 +32,9 @@ export class ServicesComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     const updateServiceModalElement = document.getElementById('updateServiceModal');
-    const datepickerModal = document.getElementById('datepickerModal');
 
     if (updateServiceModalElement && this.isAdmin()) {
       this.modal = new Modal(updateServiceModalElement)
-    } else if (datepickerModal) {
-      this.modal = new Modal(datepickerModal)
-    }
-    else {
-      console.error('Modal element not found in the DOM');
     }
   }
 
@@ -57,7 +51,7 @@ export class ServicesComponent implements AfterViewInit {
       if (this.modal) {
         this.modal.show();
       } else {
-        console.error('Modal not initialized.');
+        this.appointmentComp.showModal()
       }
     } catch (error) {
       console.error('Error loading modal data', error);
@@ -67,25 +61,45 @@ export class ServicesComponent implements AfterViewInit {
   }
 
   async handleDeleteService(id: string) {
-    if (id) {
-      Swal.fire({
-        title: "¿Estas seguro de borrar este servicio?",
-        showDenyButton: true,
-        confirmButtonText: "Si",
-        confirmButtonColor: "#22c55e",
-        denyButtonColor: "#d33",
-        denyButtonText: "No",
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          Swal.fire("Servicio eliminado", "", "success");
-          await firstValueFrom(this.servicesService.deleteService(id));
-          this.allServices = this.allServices.filter(service => service.id !== id);
-        } else if (result.isDenied) {
-          Swal.fire("Servicio no eliminado", "", "info");
-        }
-      });
+    if (!id) return;
+
+    const result = await Swal.fire({
+      title: "¿Estás seguro de borrar este servicio?",
+      text: "⚠️ Todas las citas asociadas a este servicio también se eliminarán.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "No, cancelar",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await firstValueFrom(this.servicesService.deleteService(id));
+
+        Swal.fire({
+          title: "Servicio eliminado",
+          text: "El servicio y todas sus citas han sido eliminados correctamente.",
+          icon: "success",
+          confirmButtonColor: "#22c55e",
+        });
+
+        await this.sharedService.loadAllServices();
+
+      } catch (error) {
+        console.error('Error al eliminar servicio:', error);
+        Swal.fire({
+          title: "Error",
+          text: "No se pudo eliminar el servicio. Por favor, intenta nuevamente.",
+          icon: "error",
+        });
+      }
+    } else {
+      Swal.fire("Cancelado", "El servicio no fue eliminado.", "info");
     }
   }
+
 
   async ngOnInit() {
     await this.sharedService.loadAllServices();
@@ -94,7 +108,13 @@ export class ServicesComponent implements AfterViewInit {
     });
   }
 
+  @ViewChild(AppointmentComponent) appointmentComp!: AppointmentComponent;
+
   handleCloseModal() {
-    this.modal?.hide();
+    if (this.isAdmin()) {
+      this.modal?.hide();
+    } else {
+      this.appointmentComp.hideModal();
+    }
   }
 }

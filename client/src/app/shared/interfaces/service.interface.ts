@@ -4,5 +4,5 @@ export interface ServiceInterface {
     price: number;
     duration: number;
     description?: string;
-    image?: string;
+    image?: File | string | null;
 }

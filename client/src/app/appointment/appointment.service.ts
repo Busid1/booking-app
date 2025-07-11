@@ -19,8 +19,8 @@ export class AppointmentService {
         });
     }
 
-    getAppointments(): Observable<AppointmentInterface> {
-        return this.http.get<AppointmentInterface>(`${environment.apiUrl}/get-appointments`);
+    getAppointments(): Observable<AppointmentInterface[]> {
+        return this.http.get<AppointmentInterface[]>(`${environment.apiUrl}/get-appointments`);
     }
 
     getUserAppointments(): Observable<AppointmentInterface> {
@@ -36,4 +36,16 @@ export class AppointmentService {
             body: { id: id }
         });
     }
+    
+    updateGoogleEventId(appointmentId: string, googleEventId: string): Observable<AppointmentInterface> {
+        return this.http.patch<AppointmentInterface>(
+            `${environment.apiUrl}/${appointmentId}/google-event`,
+            { googleEventId }
+        );
+    }
+
+    syncFromGoogle(): Observable<void> {
+        return this.http.patch<void>(`${environment.apiUrl}/sync-from-google`, {});
+    }
+
 }

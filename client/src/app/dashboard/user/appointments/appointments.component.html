@@ -23,7 +23,7 @@
                     <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                         {{appointment.service.title}}
                     </th>
-                    <td class="px-6 py-4">{{appointment.date}}</td>
+                    <td class="px-6 py-4">{{appointment.date | date: 'dd/MM/yyyy'}}</td>
                     <td class="px-6 py-4">{{appointment.startTime}} - {{appointment.endTime}}</td>
                     <td class="px-6 py-4">{{appointment.service.price | currency: "EUR"}}
                     <td>

@@ -11,7 +11,6 @@ import { BusinessHoursInterface } from '../../../shared/interfaces/business-hour
 
 export class ServicesService {
     protected http = inject(HttpClient);
-    selectedService: ServiceInterface | null = null;
 
     getServices(): Observable<ServiceInterface[]> {
         return this.http.get<ServiceInterface[]>(`${environment.apiUrl}/services/all-services`)
@@ -21,12 +20,12 @@ export class ServicesService {
         return this.http.get<ServiceInterface>(`${environment.apiUrl}/services/get-service/${id}`);
     }
 
-    createService(serviceFormData: ServiceInterface): Observable<ServiceInterface> {
+    createService(serviceFormData: FormData): Observable<ServiceInterface> {
         return this.http.post<ServiceInterface>(`${environment.apiUrl}/services/create-service`, serviceFormData);
     }
 
-    updateService(serviceFormData: ServiceInterface): Observable<ServiceInterface> {
-        return this.http.put<ServiceInterface>(`${environment.apiUrl}/services/update-service/${serviceFormData.id}`, serviceFormData);
+    updateService(serviceId: string, serviceFormData: FormData): Observable<ServiceInterface> {
+        return this.http.put<ServiceInterface>(`${environment.apiUrl}/services/update-service/${serviceId}`, serviceFormData);
     }
 
     deleteService(id: string): Observable<void> {

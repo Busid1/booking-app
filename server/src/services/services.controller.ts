@@ -1,13 +1,20 @@
-import { Controller, Post, Body, Get, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Put, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { ServiceDto } from 'src/dto/service.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { uploadToCloudinary } from 'src/cloudinary/uploadImage';
+import * as multer from 'multer';
 
 @Controller('services')
 export class ServicesController {
     constructor(private readonly servicesService: ServicesService) { }
 
     @Post('create-service')
-    createService(@Body() serviceDto: ServiceDto) {
+    @UseInterceptors(FileInterceptor('image', { storage: multer?.memoryStorage() }))
+    async createService(@Body() serviceDto: ServiceDto, @UploadedFile() file: Express.Multer.File) {
+        const url = await uploadToCloudinary(file.buffer, 'services');
+        serviceDto.image = url;
+
         return this.servicesService.createService(serviceDto);
     }
 
@@ -22,7 +29,17 @@ export class ServicesController {
     }
 
     @Put('update-service/:id')
-    updateService(@Param('id') id: string, @Body() serviceDto: ServiceDto) {
+    @UseInterceptors(FileInterceptor('image', { storage: multer?.memoryStorage() }))
+    async updateService(
+        @Param('id') id: string,
+        @Body() serviceDto: ServiceDto,
+        @UploadedFile() file?: Express.Multer.File
+    ) {
+        if (file) {
+            const url = await uploadToCloudinary(file.buffer, 'services');
+            serviceDto.image = url;
+        }
+
         return this.servicesService.updateService(id, serviceDto);
     }
 

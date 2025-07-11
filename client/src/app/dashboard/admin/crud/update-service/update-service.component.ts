@@ -19,7 +19,7 @@ export class UpdateServiceComponent {
   constructor(private servicesService: ServicesService, private sharedService: SharedService) { }
   @Input() serviceFormData: ServiceInterface | null = null;
   @Output() closeModal = new EventEmitter<void>();
-  
+
   onClose() {
     this.closeModal.emit();
   }
@@ -35,15 +35,38 @@ export class UpdateServiceComponent {
     }
   }
 
+  handleFileChange(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file?.type.startsWith('image/')) {
+      alert('Por favor selecciona solo imágenes');
+      return;
+    }
+    
+    if (this.serviceFormData) {
+      this.serviceFormData.image = file;
+    }
+  }
+
   async handleSubmit(event: Event) {
     event.preventDefault();
-
+    const formData = new FormData();
+    if(this.serviceFormData){
+      formData.append('id', String(this.serviceFormData.id ?? ''));
+      formData.append('title', this.serviceFormData.title);
+      formData.append('price', String(this.serviceFormData.price));
+      formData.append('duration', String(this.serviceFormData.duration));
+      formData.append('description', this.serviceFormData.description ?? '');
+      if (this.serviceFormData.image instanceof File) {
+        formData.append('image', this.serviceFormData.image);
+      }
+    }
+    
     try {
       if (!this.serviceFormData) {
         console.error('Service form data is not defined.');
         return;
       }
-      await firstValueFrom(this.servicesService.updateService(this.serviceFormData));
+      await firstValueFrom(this.servicesService.updateService(this.serviceFormData.id!, formData));
       await this.sharedService.loadAllServices();
       Swal.fire({
         title: "Servicio actualizado correctamente",

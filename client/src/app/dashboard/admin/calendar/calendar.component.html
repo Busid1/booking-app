@@ -1,0 +1,6 @@
+<div>
+    <app-google-calendar (tokenGenerated)="syncAppointmentsWithGoogle($event)"></app-google-calendar>
+    <full-calendar [options]="calendarOptions"></full-calendar>
+    <app-modal-calendar (closeModal)="handleCloseModal()" (deleteAppointment)="handleDeleteAppointment($event)"
+        [specificDate]="specificDateInfo"></app-modal-calendar>
+</div>

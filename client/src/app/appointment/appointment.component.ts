@@ -10,6 +10,7 @@ import { ServicesService } from '../dashboard/admin/crud/services.service';
 import { SharedService } from '../shared/services/shared.service';
 import { BusinessHoursInterface } from '../shared/interfaces/business-hours.interface';
 import Swal from 'sweetalert2';
+import { Modal } from 'flowbite';
 
 @Component({
   selector: 'app-appointment',
@@ -22,6 +23,7 @@ export class AppointmentComponent {
   constructor(private appointmentService: AppointmentService, private servicesService: ServicesService, private sharedService: SharedService) { }
   currentStep = 1;
   selectedServiceId: string = ""
+  private modal: Modal | null = null;
 
   appointmentData: AppointmentInterface = {
     date: '',
@@ -39,12 +41,41 @@ export class AppointmentComponent {
   dateHourAppointment: string | null = null;
 
   nextStep() {
+    if (this.currentStep === 1 && !this.appointmentData.date) {
+      Swal.fire({
+        title: "Por favor, selecciona una fecha",
+        icon: "warning",
+        confirmButtonText: "Ok",
+        confirmButtonColor: "#22c55e",
+      });
+      return;
+    }
+    if (this.currentStep === 1 && !this.appointmentsAvailable.length) {
+      Swal.fire({
+        title: "No hay horas disponibles para la fecha seleccionada",
+        icon: "warning",
+        confirmButtonText: "Ok",
+        confirmButtonColor: "#22c55e",
+      });
+      return;
+    }
+    if (this.currentStep === 1 && !this.appointmentData.startTime) {
+      Swal.fire({
+        title: "Por favor, selecciona una hora",
+        icon: "warning",
+        confirmButtonText: "Ok",
+        confirmButtonColor: "#22c55e",
+      });
+      return;
+    }
+
     if (this.currentStep < 2) this.currentStep++;
   }
 
   prevStep() {
     this.currentStep = 1
   }
+
 
   async handleReserveAppointment(event: Event) {
     event.preventDefault();
@@ -56,6 +87,14 @@ export class AppointmentComponent {
         confirmButtonText: "Ok",
         confirmButtonColor: "#22c55e",
       })
+      this.hideModal();
+      this.currentStep = 1;
+      this.appointmentData = {
+        date: '',
+        startTime: '',
+        endTime: '',
+        serviceId: ''
+      };
     } catch (error) {
       console.log(error)
     }
@@ -94,6 +133,7 @@ export class AppointmentComponent {
   async loadAvailableSlots() {
     const hours = await firstValueFrom(this.servicesService.getBusinessHours());
     const services = await firstValueFrom(this.servicesService.getServices());
+    const reservedAppointments = await firstValueFrom(this.appointmentService.getAppointments());
 
     const selectedService = services.find(s => s.id === this.appointmentData.serviceId);
     if (!selectedService) return;
@@ -105,16 +145,63 @@ export class AppointmentComponent {
     const dayHours = hours.find(h => h.dayOfWeek === adjustedIndex);
     if (!dayHours) return;
 
-    this.appointmentsAvailable = this.generateTimeSlots(dayHours, selectedService.duration);
+    if (dayHours.isClosed) {
+      this.appointmentsAvailable = [];
+      return;
+    }
+
+    const filterAppointments = reservedAppointments.filter(
+      a => a.date === this.appointmentData.date && a.serviceId === this.appointmentData.serviceId
+    );
+
+    const allSlots = this.generateTimeSlots(dayHours, selectedService.duration);
+
+    const reservedStartTimes = filterAppointments.map(a => toTimeString(toMinutes(a.startTime)));
+
+    const availableSlots = allSlots.filter(slot => {
+      const normalizedSlot = toTimeString(toMinutes(slot));
+      return !reservedStartTimes.includes(normalizedSlot);
+    });
+
+    this.appointmentsAvailable = availableSlots;
   }
 
   async ngOnInit() {
     this.sharedService.selectedService$.subscribe(async id => {
       if (!id) return;
+
       this.selectedServiceId = id;
       this.appointmentData.serviceId = id;
 
+      const today = new Date().toLocaleDateString("en-CA");
+
+      this.dateAppointment = today;
+      this.appointmentData.date = today;
+
       await this.loadAvailableSlots();
-    });    
+
+      if (!this.appointmentsAvailable.length) {
+        this.dateAppointment = null;
+        this.appointmentData.date = '';
+      }
+    });
   }
+
+  ngAfterViewInit() {
+    const modalEl = document.getElementById('bookAppointmentModal');
+    if (modalEl) {
+      this.modal = new Modal(modalEl);
+    } else {
+      console.error('bookAppointmentModal no encontrado');
+    }
+  }
+
+  showModal() {
+    this.modal?.show();
+  }
+
+  hideModal() {
+    this.modal?.hide();
+  }
+
 } 

@@ -1,15 +1,17 @@
 <div class="flex flex-col gap-3">
   <span for="date" class="text-white">Selecciona el dia de la cita:</span>
-  <input name="date" type="date" [value]="today" [min]="today" (change)="handleDateChange($event)">
+  <input name="date" type="date" class="rounded-lg" [value]="today" [min]="today" (change)="handleDateChange($event)">
   @if(appointmentsAvailable.length > 0){
   <div class="flex flex-col gap-5">
     <div class="flex flex-col gap-2">
       <span class="text-white mr-2">Selecciona la hora de la cita:</span>
       <div class="flex flex-wrap">
         @for(appointment of appointmentsAvailable; track appointment){
-        <button type="button" (click)="handleSelectedHourDate(appointment)"
-          class="text-gray-900 focus:bg-blue-600 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-blue-600 dark:hover:border-gray-600 dark:focus:ring-gray-700">
-          {{appointment}}
+        <button type="button" (click)="handleSelectedHourDate(appointment)" [ngClass]="{
+    'bg-blue-600 text-white': dateHourAppointment === appointment,
+    'bg-white text-gray-900 hover:bg-gray-100': dateHourAppointment !== appointment
+  }" class="border border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
+          {{ appointment }}
         </button>
         }
       </div>
@@ -17,22 +19,25 @@
     <div class="flex flex-col">
       <span class="text-white mb-2">Servicio selecionado:</span>
       <tr
-        class="bg-white flex justify-between border-b rounded-md dark:bg-gray-700 dark:border-gray-700 border-gray-200">
-        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+        class="bg-white flex px-5 justify-between items-center border-b rounded-md dark:bg-gray-700 dark:border-gray-700 border-gray-200">
+        <th scope="row" class="inline-flex items-center gap-2 py-4 font-medium text-gray-900 dark:text-white">
+          @if(selectedServiceData.image){
+          <img class="h-12 rounded" src="{{selectedServiceData.image}}" alt={{selectedServiceData.title}}>
+          }
           {{selectedServiceData.title}}
         </th>
-        <td class="px-6 py-4 text-white">
+        <td class="py-4 text-white">
           {{selectedServiceData.duration}} min
         </td>
-        <td class="px-6 py-4 text-white">
+        <td class="py-4 text-white">
           {{selectedServiceData.price | currency:'EUR'}}
         </td>
       </tr>
     </div>
     <div class="flex gap-3 justify-between">
-      <div class="flex gap-2">
-        <span class="text-white">{{getAppointmentRange()}}</span>
-        <span class="text-white">{{dateAppointment}}</span>
+      <div class="flex flex-col gap-2">
+        <span class="text-white">Fecha: {{dateAppointment | date: 'dd/MM/yyyy'}}</span>
+        <span class="text-white">Hora: {{getAppointmentRange()}}</span>
       </div>
       <div class="flex justify-end gap-2">
         <span class="text-white">Total:</span>

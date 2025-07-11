@@ -25,7 +25,7 @@ export class CreateServiceComponent {
     price: 0,
     duration: 0,
     description: '',
-    image: '',
+    image: null as File | string | null,
   };
 
   handleInputChange(field: string, event: Event) {
@@ -40,10 +40,28 @@ export class CreateServiceComponent {
     this.serviceFormData[field as 'title' | 'description'] = value
   }
 
+  handleFileChange(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file?.type.startsWith('image/')) {
+      alert('Por favor selecciona solo imágenes');
+      return;
+    }
+    this.serviceFormData.image = file;
+  }
+
   async handleSubmit(event: Event) {
     event.preventDefault();
+    const formData = new FormData();
+    formData.append('title', this.serviceFormData.title);
+    formData.append('price', String(this.serviceFormData.price));
+    formData.append('duration', String(this.serviceFormData.duration));
+    formData.append('description', this.serviceFormData.description ?? '');
+    if (this.serviceFormData.image instanceof File) {
+      formData.append('image', this.serviceFormData.image);
+    }
+
     try {
-      await firstValueFrom(this.servicesService.createService(this.serviceFormData));
+      await firstValueFrom(this.servicesService.createService(formData));
       Swal.fire({
         title: "Servicio creado correctamente",
         confirmButtonText: "Ok",
