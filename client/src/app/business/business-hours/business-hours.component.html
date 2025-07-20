@@ -1,0 +1,51 @@
+<div class="bg-white p-6 rounded-lg shadow-md">
+  <h3 class="text-2xl font-bold text-gray-900 mb-4">Horario de apertura y cierre</h3>
+  <form *ngIf="editBusinessHours" (ngSubmit)="handleSaveBusinessHours($event)" class="flex flex-col gap-6">
+    <div *ngFor="let day of dayOfWeek; let i = index" class="border p-4 rounded-lg bg-gray-50 shadow-md">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="text-lg font-semibold">{{ day }}</h3>
+        <label class="flex items-center gap-2 bg-gray-200 border text-md border-gray-300 p-2 rounded">
+          <input type="checkbox" name="closed{{day}}" [(ngModel)]="formData[i].isClosed">
+          Cerrado todo el día
+        </label>
+      </div>
+
+      <div *ngIf="!formData[i].isClosed" class="flex items-center gap-3 flex-wrap">
+        <div *ngFor="let timeBlock of formData[i].timeBlocks; let x = index"
+          class="flex items-center gap-5 bg-gray-100 shadow w-1/4 p-3 rounded-md">
+          <div>
+            <app-timePicker [label]="'Hora de apertura:'" [value]="timeBlock.openTime"
+              (timeChanged)="handleTimeChange(i, x, 'openTime', $event)">
+            </app-timePicker>
+            <app-timePicker [label]="'Hora de cierre:'" [value]="timeBlock.closeTime"
+              (timeChanged)="handleTimeChange(i, x, 'closeTime', $event)">
+            </app-timePicker>
+          </div>
+          <button type="button" class="bg-red-500 text-white text-md rounded-full h-10 w-10 hover:bg-red-600 transition"
+            (click)="handleRemoveNewTime(i, x)"><i class="fas fa-minus mx-auto"></i></button>
+        </div>
+        <button type="button" class="bg-blue-600 text-white text-md rounded-full h-10 w-10 hover:bg-blue-700 transition"
+          (click)="handleAddNewTime(i)"><i class="fas fa-plus mx-auto"></i></button>
+      </div>
+    </div>
+    <div class="flex gap-5">
+      <button type="submit" class="w-full my-4 bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700">
+        <i class="ml-2 fas fa-save mr-1.5"></i>
+        Guardar horario
+      </button>
+      <button (click)="handleEditBusinessHours()" type="button"
+        class="my-4 w-full bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700">
+        <i class="fas fa-eye-slash mr-1.5"></i>
+        Ocultar horario
+      </button>
+    </div>
+  </form>
+  <div class="flex justify-end w-full">
+    <button *ngIf="!editBusinessHours" (click)="handleEditBusinessHours()"
+      class="block text-white bg-orange-600 hover:bg-orange-700 transition focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 text-center"
+      type="button">
+      <i class="fas fa-pencil-alt mr-1.5"></i>
+      Editar horario
+    </button>
+  </div>
+</div>

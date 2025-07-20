@@ -3,4 +3,5 @@ export interface AppointmentInterface {
   startTime: string
   endTime: string
   serviceId: string
+  clientName: string
 }

@@ -23,5 +23,5 @@ export class ServiceDto {
 
   @IsString()
   @IsOptional()
-  image: string;
+  image: string | null;
 }

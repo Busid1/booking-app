@@ -3,8 +3,8 @@ import { google } from 'googleapis';
 
 @Injectable()
 export class GoogleCalendarService {
-    private calendar;
-    private calendarId = 'primexd214@gmail.com'; // el correo o ID del calendario
+    private calendar: any;
+    private calendarId = 'primexd214@gmail.com';
 
     constructor() {
         const jsonCredentials = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
@@ -24,20 +24,26 @@ export class GoogleCalendarService {
 
     async createEvent({
         summary,
-        description,
         startDateTime,
         endDateTime,
+        price,
+        duration,
+        client,
+        service,
     }: {
         summary: string;
-        description: string;
         startDateTime: string;
         endDateTime: string;
+        price: number;
+        duration: number;
+        client: string;
+        service: string;
     }) {
         const fixDateTime = (dt: string) => dt.length === 16 ? dt + ':00' : dt;
 
         const event = {
             summary,
-            description,
+            description: `Cliente: ${client}\nServicio: ${service}\nPrecio: ${price}€\nDuración: ${duration} min`,
             start: {
                 dateTime: fixDateTime(startDateTime),
                 timeZone: 'Europe/Madrid',
@@ -59,6 +65,56 @@ export class GoogleCalendarService {
             throw new InternalServerErrorException(
                 'Error al crear evento en Google Calendar',
             );
+        }
+    }
+
+    async updateEvent(
+        {
+            summary,
+            eventId,
+            startDateTime,
+            endDateTime,
+            price,
+            duration,
+            client,
+            service,
+        }
+        : 
+        {
+            summary: string;
+            eventId: string;
+            startDateTime: string;
+            endDateTime: string;
+            price: number;
+            duration: number;
+            client: string;
+            service: string;
+        }
+    ) {
+        const fixDateTime = (dt: string) => dt.length === 16 ? dt + ':00' : dt;
+
+        const event = {
+            summary,
+            description: `Cliente: ${client}\nServicio: ${service}\nPrecio: ${price}€\nDuración: ${duration} min`,
+            start: {
+                dateTime: fixDateTime(startDateTime),
+                timeZone: 'Europe/Madrid',
+            },
+            end: {
+                dateTime: fixDateTime(endDateTime),
+                timeZone: 'Europe/Madrid',
+            },
+        };
+        try {
+            const res = await this.calendar.events.update({
+                calendarId: this.calendarId,
+                eventId,
+                resource: event,
+            })
+
+            res.data
+        } catch (error) {
+            console.log(error)
         }
     }
 

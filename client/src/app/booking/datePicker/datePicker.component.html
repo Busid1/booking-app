@@ -1,0 +1,51 @@
+<div class="flex flex-col gap-3">
+  <span for="date">Selecciona el dia de la cita:</span>
+  <input name="date" type="date" class="rounded-lg bg-gray-100 border-gray-300" [value]="today" [min]="today"
+    (change)="handleDateChange($event)">
+  @if(appointmentsAvailable.length > 0){
+  <div class="flex flex-col gap-5">
+    <div class="flex flex-col gap-2">
+      <span class="mr-2">Selecciona la hora de la cita:</span>
+      <div class="flex flex-wrap">
+        @for(appointment of appointmentsAvailable; track appointment){
+        <button type="button" (click)="handleSelectedHourDate(appointment)" [ngClass]="{
+    'bg-blue-500 text-white': dateHourAppointment === appointment,
+    'bg-gray-100 text-gray-900 hover:bg-gray-200 transition': dateHourAppointment !== appointment
+  }" class="border border-gray-300 focus:border-none focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2">
+          {{ appointment }}
+        </button>
+        }
+      </div>
+    </div>
+    <div class="flex flex-col">
+      <span class="mb-2">Servicio selecionado:</span>
+      <tr class="bg-gray-100 flex px-5 justify-between items-center border border-gray-300 rounded-md">
+        <th scope="row" class="inline-flex items-center gap-2 py-4 font-medium text-gray-800">
+          @if(selectedServiceData.image){
+          <img class="h-12 rounded" src="{{selectedServiceData.image}}" alt={{selectedServiceData.title}}>
+          }
+          {{selectedServiceData.title}}
+        </th>
+        <td class="py-4">
+          {{selectedServiceData.duration}} min
+        </td>
+        <td class="py-4">
+          {{selectedServiceData.price | currency:'EUR'}}
+        </td>
+      </tr>
+    </div>
+    <div class="flex gap-3 justify-between">
+      <div class="flex flex-col gap-2">
+        <span class="">Fecha: {{dateAppointment | date: 'dd/MM/yyyy'}}</span>
+        <span class="">Hora: {{getAppointmentRange() || "--:-- --:--"}}</span>
+      </div>
+      <div class="flex justify-end gap-2">
+        <span class="">Total:</span>
+        <h2 class="text-3xl m-0">{{selectedServiceData.price | currency:'EUR'}}</h2>
+      </div>
+    </div>
+  </div>
+  } @else {
+  <span class="text-gray-800">No hay citas disponibles para ese día</span>
+  }
+</div>

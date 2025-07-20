@@ -51,7 +51,7 @@ export class AuthService {
         where: { email },
       });
 
-      if (userFound) throw new BadRequestException('El usuario ya existe');
+      if (userFound) throw new BadRequestException('The user already exists');
 
       const user = await this.prismaService.user.create({
         data: {
@@ -68,7 +68,7 @@ export class AuthService {
         ...userWithoutPassword,
       }
 
-      const authToken = await this.jwtService.signAsync(payload)      
+      const authToken = await this.jwtService.signAsync(payload)
 
       return { authToken, role: user.role };
     } catch (error) {

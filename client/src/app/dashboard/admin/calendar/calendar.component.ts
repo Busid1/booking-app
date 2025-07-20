@@ -6,40 +6,52 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
+import { DateClickArg } from '@fullcalendar/interaction';
 import { Modal } from 'flowbite';
 import { ModalCalendarComponent } from "./modal-calendar/modal-calendar.component";
 import { firstValueFrom } from 'rxjs';
 import Swal from 'sweetalert2';
 import { SharedService } from '../../../shared/services/shared.service';
-import { AppointmentService } from '../../../appointment/appointment.service';
-import { GoogleCalendarComponent } from './googleCalendar.component';
-import { HttpClient } from '@angular/common/http';
+import { AppointmentService } from '../../../booking/appointment.service';
+import { ModalCreateAppointmentComponent } from './modal-create-appointment/modal-create-appointment.component';
+import { AuthService } from '../../../auth/auth.service';
 
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [FullCalendarModule, CommonModule, ModalCalendarComponent, GoogleCalendarComponent],
+  imports: [FullCalendarModule, CommonModule, ModalCalendarComponent, ModalCreateAppointmentComponent],
   templateUrl: './calendar.component.html',
   styleUrl: './calendar.component.scss',
 })
 
 export class CalendarComponent {
-  constructor(private appointmentsService: AppointmentService, 
-    private sharedService: SharedService,
-    private http: HttpClient
+  constructor(private appointmentsService: AppointmentService,
+    private sharedService: SharedService, private authService: AuthService
   ) { }
 
   @Input() appointments: any[] = [];
   dateModal: Modal | null = null;
+  modalId: string = 'createAppointmentModal';
+  selectedDate: string = '';
 
   specificDateInfo = {
     title: '',
     startTime: '',
     endTime: '',
     price: 0,
-    userName: '',
+    clientName: '',
     dateDay: '',
     appointmentId: ''
+  }
+
+  openModal(id: string) {
+    this.modalId = id;
+
+    const modalEl = document.getElementById(this.modalId);
+    if (modalEl) {
+      this.dateModal = new Modal(modalEl);
+      this.dateModal.show();
+    }
   }
 
   calendarOptions: CalendarOptions = {
@@ -51,6 +63,17 @@ export class CalendarComponent {
     ],
     eventDidMount: (info) => {
       info.el.style.cursor = 'pointer';
+    },
+    dayCellDidMount: (info) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const cellDate = info.date;
+
+      if (cellDate < today) {
+        info.el.style.cursor = 'not-allowed';
+      } else {
+        info.el.style.cursor = 'crosshair';
+      }
     },
     locale: 'es',
     initialView: 'dayGridMonth',
@@ -65,9 +88,13 @@ export class CalendarComponent {
       right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
     },
     events: [],
-    dayMaxEvents: 4,
+    dateClick: this.handleCreateAppointment.bind(this),
+    dayMaxEvents: 3,
     moreLinkClick: 'popover',
     eventClick: this.handleEventClick.bind(this),
+    validRange: {
+      start: new Date().toLocaleDateString('sv-SE')
+    }
   };
 
   ngOnChanges(): void {
@@ -79,7 +106,7 @@ export class CalendarComponent {
       backgroundColor: '#0ea5e9',
       textColor: '#fff',
       extendedProps: {
-        user: app.user?.name,
+        clientName: app.clientName || app.user?.name || "gay",
         price: app.service?.price,
         appointmentId: app?.id,
         googleEventId: app.googleEventId || null
@@ -87,8 +114,19 @@ export class CalendarComponent {
     }));
   }
 
+  handleCreateAppointment(arg: DateClickArg) {
+    this.openModal('createAppointmentModal');
+    this.selectedDate = arg.date.toLocaleDateString('sv-SE');
+  }
+
+  isAdmin() {
+    return this.authService.isAdmin();
+  }
+
   handleEventClick(info: EventClickArg) {
     const popover = document.querySelector('.fc-popover');
+    this.selectedDate = info.event.start ? info.event.start.toLocaleDateString('sv-SE') : '';
+
     if (popover) {
       popover.remove();
     }
@@ -102,19 +140,13 @@ export class CalendarComponent {
       endTime: end
         ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : '',
-      dateDay: start?.toLocaleDateString() || '',
+      dateDay: this.selectedDate || '',
       price: extendedProps['price'],
-      userName: extendedProps['user'],
+      clientName: extendedProps['clientName'],
       appointmentId: extendedProps['appointmentId']
     }
 
-    const modalEl = document.getElementById('readDateModal');
-    if (modalEl) {
-      if (!this.dateModal) {
-        this.dateModal = new Modal(modalEl);
-      }
-      this.dateModal.show();
-    }
+    this.openModal("readUpdateAppointmentModal")
   }
 
   handleCloseModal() {
@@ -135,9 +167,6 @@ export class CalendarComponent {
         await firstValueFrom(this.appointmentsService.deleteAppointment(appointmentId));
         await this.sharedService.loadAllAppointments();
         this.handleCloseModal()
-
-      } else if (result.isDenied) {
-        Swal.fire("Cita no eliminada", "", "info");
       }
     });
   }
@@ -159,73 +188,19 @@ export class CalendarComponent {
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${time}:00`;
   }
 
-  async syncAppointmentsWithGoogle(accessToken: string) {
-    const headers = {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    };
-
-    for (const app of this.appointments) {
-      if (app.googleEventId) {
-        console.log(`Ya existe en Google Calendar: ${app.id} -> ${app.googleEventId}`);
-        continue; // ya sincronizada
+  ngOnInit() {
+    this.appointmentsService.syncFromGoogle().subscribe({
+      next: () => {
+        this.loadAppointments();
+      },
+      error: (err) => {
+        console.error('Error al sincronizar:', err);
       }
-
-      const startDateTime = this.toISO(app.date, app.startTime);
-      const endDateTime = this.toISO(app.date, app.endTime);
-
-      const event = {
-        summary: app.service?.title || 'Cita',
-        description: `Cliente: ${app.user?.name || ''}`,
-        start: {
-          dateTime: startDateTime,
-          timeZone: 'Europe/Madrid',
-        },
-        end: {
-          dateTime: endDateTime,
-          timeZone: 'Europe/Madrid',
-        },
-      };
-
-      const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(event),
-      });
-
-      const data = await res.json();
-      console.log('Evento creado en Google Calendar:', data);
-
-      if (data.id) {
-        // actualizar en backend el googleEventId
-        await firstValueFrom(
-          this.appointmentsService.updateGoogleEventId(app.id, data.id)
-        );
-
-        // opcional: actualizar localmente para evitar otro fetch
-        app.googleEventId = data.id;
-      }
-    }
+    });
   }
 
-ngOnInit() {
-  this.appointmentsService.syncFromGoogle().subscribe({
-    next: () => {
-      console.log('Sincronización completa');
-      // aquí puedes recargar las citas
-      this.loadAppointments();
-    },
-    error: (err) => {
-      console.error('Error al sincronizar:', err);
-    }
-  });
-}
-
-loadAppointments() {
-  // tu lógica para recargar citas desde la base de datos
-  // por ejemplo:
-  this.sharedService.loadAllAppointments();
-}
-
+  loadAppointments() {
+    this.sharedService.loadAllAppointments();
+  }
 
 }

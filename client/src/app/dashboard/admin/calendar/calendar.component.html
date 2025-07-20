@@ -1,6 +1,8 @@
-<div>
-    <app-google-calendar (tokenGenerated)="syncAppointmentsWithGoogle($event)"></app-google-calendar>
-    <full-calendar [options]="calendarOptions"></full-calendar>
+<div class="bg-white rounded-lg p-6 shadow-md">
+    <h3 class="text-2xl font-bold text-gray-900 mb-4">Calendario de citas</h3>
+    <full-calendar id="appointmentCalendar" [options]="calendarOptions"></full-calendar>
     <app-modal-calendar (closeModal)="handleCloseModal()" (deleteAppointment)="handleDeleteAppointment($event)"
-        [specificDate]="specificDateInfo"></app-modal-calendar>
+        [specificDate]="specificDateInfo" [date]="selectedDate"></app-modal-calendar>
+    <app-modal-create-appointment (closeModal)="handleCloseModal()"
+        [date]="selectedDate"></app-modal-create-appointment>
 </div>

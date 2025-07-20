@@ -10,12 +10,17 @@ export class ServicesController {
     constructor(private readonly servicesService: ServicesService) { }
 
     @Post('create-service')
-    @UseInterceptors(FileInterceptor('image', { storage: multer?.memoryStorage() }))
-    async createService(@Body() serviceDto: ServiceDto, @UploadedFile() file: Express.Multer.File) {
-        const url = await uploadToCloudinary(file.buffer, 'services');
-        serviceDto.image = url;
+    @UseInterceptors(FileInterceptor('image', { storage: multer.memoryStorage() }))
+    async createService(
+        @Body() serviceDto: ServiceDto,
+        @UploadedFile() file?: Express.Multer.File
+    ) {
+        if (file) {
+            const url = await uploadToCloudinary(file.buffer, 'services');
+            serviceDto.image = url;
+        }
 
-        return this.servicesService.createService(serviceDto);
+        return this.servicesService.createService(serviceDto)
     }
 
     @Get('all-services')

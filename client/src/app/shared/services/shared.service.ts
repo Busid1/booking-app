@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
-import { AppointmentService } from '../../appointment/appointment.service';
 import { ServicesService } from '../../dashboard/admin/crud/services.service';
+import { AppointmentService } from '../../booking/appointment.service';
 
 @Injectable({ providedIn: 'root' })
 export class SharedService {

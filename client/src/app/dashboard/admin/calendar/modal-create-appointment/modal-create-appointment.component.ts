@@ -1,42 +1,25 @@
-import { CommonModule, CurrencyPipe } from '@angular/common';
-import { Component, Output, EventEmitter, Input } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { AppointmentService } from '../../../../booking/appointment.service';
+import { CommonModule } from '@angular/common';
 import { ServicesService } from '../../crud/services.service';
 import Swal from 'sweetalert2';
-import { AppointmentService } from '../../../../booking/appointment.service';
 import { SharedService } from '../../../../shared/services/shared.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'app-modal-calendar',
-  templateUrl: './modal-calendar.component.html',
+  selector: 'app-modal-create-appointment',
+  templateUrl: './modal-create-appointment.component.html',
+  imports: [CommonModule, FormsModule],
   standalone: true,
-  imports: [CurrencyPipe, CommonModule, FormsModule]
 })
 
-export class ModalCalendarComponent {
+export class ModalCreateAppointmentComponent {
   constructor(private appointmentsService: AppointmentService, private servicesService: ServicesService, private sharedService: SharedService) { }
-  services: any = []
-  @Input() date: string = '';
   @Output() closeModal = new EventEmitter<void>();
-  @Output() deleteAppointment = new EventEmitter<string>();
-  @Input() specificDate: {
-    title: string;
-    startTime: string;
-    endTime: string;
-    price: number;
-    clientName: string;
-    dateDay: string;
-    appointmentId: string;
-  } = {
-      title: '',
-      startTime: '',
-      endTime: '',
-      price: 0,
-      clientName: '',
-      dateDay: '',
-      appointmentId: ''
-    };
+  @Input() date: string = '';
+  services: any = [];
+
   appointmentData: any = {
     service: '',
     serviceId: '',
@@ -53,7 +36,6 @@ export class ModalCalendarComponent {
       (s: any) => s.id === this.appointmentData.service
     );
     this.appointmentData.serviceId = this.selectedService.id
-
     this.updateEndTime();
   }
 
@@ -83,56 +65,57 @@ export class ModalCalendarComponent {
     this.appointmentData[field] = value;
   }
 
-  isEditMode = false;
-
-  onEditAppointment() {
-    this.isEditMode = !this.isEditMode;
-    this.appointmentData.startTime = this.specificDate.startTime
-    this.appointmentData.endTime = this.specificDate.endTime
+  onClose() {
+    this.closeModal.emit()
   }
 
   async handleSubmit(event: Event) {
     event.preventDefault();
     const token = localStorage.getItem("authToken") || "";
-    if (!this.appointmentData.serviceId) {
+    if (!this.appointmentData.service) {
       Swal.fire({
         title: "Por favor, selecciona un servicio",
+        icon: "error",
+      })
+      return
+    }
+
+    if (!this.appointmentData.startTime || !this.appointmentData.endTime) {
+      Swal.fire({
+        title: "Debe de asignar una hora de inicio y fin",
+        icon: "error",
+      })
+      return
+    }
+
+    if (this.appointmentData.endTime < this.appointmentData.startTime) {
+      Swal.fire({
+        title: "La hora de fin es menor al de inicio",
         icon: "error",
       });
       return;
     }
-    if (!this.appointmentData.serviceId) {
+
+    if (!this.appointmentData.clientName) {
       Swal.fire({
-        title: "Por favor, selecciona un servicio",
+        title: "Debe de asignar un nombre al cliente",
         icon: "error",
-      });
-      return;
-    } 
-    else {
-      try {
-        await firstValueFrom(this.appointmentsService.updateAppointment(this.appointmentData, token, this.specificDate.appointmentId))
-        Swal.fire({
-          title: 'Cita actualizada correctamente',
-          icon: 'success',
-          confirmButtonText: 'Ok',
-          confirmButtonColor: '#22c55e',
-        });
-        this.sharedService.loadAllAppointments();
-        this.onEditAppointment();
-        this.onClose();
-      } catch (error) {
-        console.log(error)
-      }
+      })
+      return
     }
-  }
 
-  onClose() {
-    this.closeModal.emit();
-  }
-
-  onDeleteAppointment() {
-    if (this.specificDate?.appointmentId) {
-      this.deleteAppointment.emit(this.specificDate.appointmentId);
+    try {
+      await firstValueFrom(this.appointmentsService.createAppointment(this.appointmentData, token))
+      Swal.fire({
+        title: 'Cita reservada correctamente',
+        icon: 'success',
+        confirmButtonText: 'Ok',
+        confirmButtonColor: '#22c55e',
+      });
+      this.sharedService.loadAllAppointments();
+      this.onClose();
+    } catch (error) {
+      console.log(error)
     }
   }
 
@@ -141,6 +124,6 @@ export class ModalCalendarComponent {
     if (this.date) {
       this.appointmentData.date = this.date;
     }
-    this.appointmentData.clientName = this.specificDate.clientName
   }
+
 }

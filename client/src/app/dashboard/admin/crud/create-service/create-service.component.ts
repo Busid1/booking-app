@@ -1,76 +1,93 @@
-import { Component, EventEmitter, Output } from '@angular/core';
-import { ServiceInterface } from '../../../../shared/interfaces/service.interface';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ServicesService } from '../services.service';
 import { SharedService } from '../../../../shared/services/shared.service';
+import { CommonModule } from '@angular/common';
+import { ServiceInterface } from '../../../../shared/interfaces/service.interface';
 import Swal from 'sweetalert2';
+import { ServiceFormComponent } from '../service-form/service-form.component';
 
 @Component({
   selector: 'app-create-service',
   standalone: true,
-  imports: [],
-  templateUrl: './create-service.component.html',
-  styleUrl: './create-service.component.scss'
+  imports: [CommonModule, ServiceFormComponent],
+  template: `
+<div>
+  <app-service-form
+    [mode]="'create'"
+    [modalId]="'createServiceModal'"
+    [serviceFormData]="serviceFormData"
+    [isSaving]="isSaving"
+    (close)="onClose()"
+    (submitForm)="handleSubmit($event)">
+  </app-service-form>
+</div>
+`,
 })
 export class CreateServiceComponent {
-  constructor(private servicesService: ServicesService, private sharedService: SharedService) { }
+  constructor(
+    private servicesService: ServicesService,
+    private sharedService: SharedService
+  ) { }
+
   @Output() closeModal = new EventEmitter<void>();
 
-  onClose() {
-    this.closeModal.emit();
-  }
+  isSaving = false;
 
   serviceFormData: ServiceInterface = {
     title: '',
     price: 0,
     duration: 0,
     description: '',
-    image: null as File | string | null,
+    image: null,
   };
 
-  handleInputChange(field: string, event: Event) {
-    let value = (event.target as HTMLInputElement).value;
-    if (field === "price" && value.length > 4) {
-      value = value.slice(0, 3);
-      (event.target as HTMLInputElement).value = value;
-    }
-    if (field === "duration" && value.length > 4) {
-      (event.target as HTMLInputElement).value = value;
-    }
-    this.serviceFormData[field as 'title' | 'description'] = value
+  onClose() {
+    this.closeModal.emit();
   }
 
-  handleFileChange(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file?.type.startsWith('image/')) {
-      alert('Por favor selecciona solo imágenes');
+  async handleSubmit(service: ServiceInterface) {
+    if (!service.title?.trim()) {
+      Swal.fire({ icon: 'warning', text: 'El nombre del servicio es obligatorio.' });
       return;
     }
-    this.serviceFormData.image = file;
-  }
+    if (!service.price || service.price <= 0) {
+      Swal.fire({ icon: 'warning', text: 'El precio debe ser mayor a 0.' });
+      return;
+    }
+    if (!service.duration || service.duration <= 0) {
+      Swal.fire({ icon: 'warning', text: 'La duración debe ser mayor a 0.' });
+      return;
+    }
 
-  async handleSubmit(event: Event) {
-    event.preventDefault();
+    this.isSaving = true;
+
     const formData = new FormData();
-    formData.append('title', this.serviceFormData.title);
-    formData.append('price', String(this.serviceFormData.price));
-    formData.append('duration', String(this.serviceFormData.duration));
-    formData.append('description', this.serviceFormData.description ?? '');
-    if (this.serviceFormData.image instanceof File) {
-      formData.append('image', this.serviceFormData.image);
+    formData.append('title', service.title.trim());
+    formData.append('price', String(service.price));
+    formData.append('duration', String(service.duration));
+    formData.append('description', service.description?.trim() ?? '');
+
+    if (service.image instanceof File) {
+      formData.append('image', service.image);
     }
 
     try {
-      await firstValueFrom(this.servicesService.createService(formData));
+      const response = await firstValueFrom(this.servicesService.createService(formData));
+      // console.log(response);
+      
       Swal.fire({
-        title: "Servicio creado correctamente",
-        confirmButtonText: "Ok",
-        confirmButtonColor: "#22c55e",
-      })
+        title: 'Servicio creado correctamente',
+        confirmButtonText: 'Ok',
+        confirmButtonColor: '#22c55e',
+      });
       await this.sharedService.loadAllServices();
       this.onClose();
     } catch (error) {
-      console.error('Error creating service:', error);
+      console.error('Error creando servicio:', error);
+      Swal.fire({ icon: 'error', text: 'Error creando servicio. Intenta de nuevo.' });
+    } finally {
+      this.isSaving = false;
     }
   }
 }

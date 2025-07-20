@@ -7,14 +7,14 @@ import { Modal } from 'flowbite';
 import { UpdateServiceComponent } from '../dashboard/admin/crud/update-service/update-service.component';
 import Swal from 'sweetalert2';
 import { AuthService } from '../auth/auth.service';
-import { AppointmentComponent } from '../appointment/appointment.component';
+import { BookingComponent } from '../booking/booking.component';
 import { SharedService } from '../shared/services/shared.service';
 
 @Component({
   selector: 'app-services',
   templateUrl: './services.component.html',
   standalone: true,
-  imports: [CurrencyPipe, UpdateServiceComponent, AppointmentComponent],
+  imports: [CurrencyPipe, UpdateServiceComponent, BookingComponent],
 })
 
 export class ServicesComponent implements AfterViewInit {
@@ -95,11 +95,8 @@ export class ServicesComponent implements AfterViewInit {
           icon: "error",
         });
       }
-    } else {
-      Swal.fire("Cancelado", "El servicio no fue eliminado.", "info");
     }
   }
-
 
   async ngOnInit() {
     await this.sharedService.loadAllServices();
@@ -108,7 +105,7 @@ export class ServicesComponent implements AfterViewInit {
     });
   }
 
-  @ViewChild(AppointmentComponent) appointmentComp!: AppointmentComponent;
+  @ViewChild(BookingComponent) appointmentComp!: BookingComponent;
 
   handleCloseModal() {
     if (this.isAdmin()) {

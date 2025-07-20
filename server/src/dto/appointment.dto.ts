@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class AppointmentDto {
     @IsString()
@@ -12,4 +12,8 @@ export class AppointmentDto {
 
     @IsString()
     serviceId: string
+
+    @IsOptional()
+    @IsString()
+    clientName: string;
 }

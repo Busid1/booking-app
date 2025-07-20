@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { BusinessHoursInterface } from '../../../shared/interfaces/business-hours.interface';
+import { BusinessHoursInterface } from '../../shared/interfaces/business-hours.interface';
 import { firstValueFrom } from 'rxjs';
-import { ServicesService } from '../../../dashboard/admin/crud/services.service';
+import { ServicesService } from '../../dashboard/admin/crud/services.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TimePickerComponent } from './timePicker/timePicker.component';
@@ -10,15 +10,15 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-business-hours',
   templateUrl: './business-hours.component.html',
+  imports: [CommonModule, FormsModule, TimePickerComponent],
   standalone: true,
-  imports: [CommonModule, FormsModule, TimePickerComponent]
 })
 
 export class BusinessHoursComponent implements OnInit {
   constructor(private businessHoursService: ServicesService) { }
 
-  editBusinessHours: boolean = false
-  handleEditBusinessHours(){
+  editBusinessHours: boolean = false;
+  handleEditBusinessHours() {
     this.editBusinessHours = !this.editBusinessHours
   }
 
@@ -65,7 +65,7 @@ export class BusinessHoursComponent implements OnInit {
           confirmButtonText: "Ok",
           confirmButtonColor: "#22c55e",
         })
-        console.log('Horarios guardados correctamente')
+        this.editBusinessHours = false;
       },
       error: (err) => console.error('Error al guardar horarios:', err)
     });
@@ -99,11 +99,12 @@ export class BusinessHoursComponent implements OnInit {
       };
     }
 
-    this.formData = defaultFormData;    
+
+    this.formData = defaultFormData;
   }
 
   handleAddNewTime(index: number) {
-    this.formData[index].timeBlocks.push({ openTime: '', closeTime: '' });
+    this.formData[index].timeBlocks.push({ openTime: '09:00', closeTime: '14:00' });
   }
 
   handleRemoveNewTime(dayIndex: number, blockIndex: number) {

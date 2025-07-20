@@ -11,6 +11,7 @@ import { AuthService } from '../auth/auth.service';
 })
 export default class HeaderComponent {
   constructor(private authService: AuthService) { }
+  isLoading = false;
   
   handleIsAuthenticated() {
     return this.authService.isLoggedIn();
@@ -21,6 +22,10 @@ export default class HeaderComponent {
   }
 
   logout() {
+    this.isLoading = true;
+    setTimeout(()=>{
+      this.isLoading = false;
+    }, 1000)
     return this.authService.logout();
   }
 }

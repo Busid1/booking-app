@@ -15,7 +15,10 @@ export default class RegisterComponent {
     email: '',
     password: '',
     name: '',
+    error: ''
   }
+
+  isLoading = false;
 
   handleInputChange(field: string, event: Event) {
     const value = (event.target as HTMLInputElement).value;
@@ -25,10 +28,10 @@ export default class RegisterComponent {
   async submitForm(event: Event) {
     event.preventDefault();
     const { email, password, name } = this.formData;
+    this.isLoading = true;
 
     try {
       const response: any = await firstValueFrom(this.authService.registerUser(email, password, name));
-      console.log(response);
       
       const token = response.authToken;
       const role = response.role;
@@ -36,10 +39,10 @@ export default class RegisterComponent {
       localStorage.setItem('authToken', token);
       localStorage.setItem('role', role);
       this.authService.login();
-      alert('Usuario registrado');
-    } catch (error) {
-      console.log(error);
-      alert('Error al registrar el usuario');
+    } catch (error: any) {
+      this.formData.error = error.error.message
+    } finally {
+      this.isLoading = false;
     }
   }
 }

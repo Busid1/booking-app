@@ -13,8 +13,11 @@ export default class LoginComponent {
 
   formData = {
     email: '',
-    password: ''
+    password: '',
+    error: ''
   };
+
+  isLoading = false;
 
   handleInputChange(field: string, event: Event) {
     const value = (event.target as HTMLInputElement).value;
@@ -24,6 +27,7 @@ export default class LoginComponent {
   async submitForm(event: Event) {
     event.preventDefault();
     const { email, password } = this.formData;
+    this.isLoading = true;
 
     try {
       const response: any = await firstValueFrom(this.authService.loginUser(email, password));
@@ -33,9 +37,13 @@ export default class LoginComponent {
       localStorage.setItem("authToken", token);
       localStorage.setItem('role', role);
       this.authService.login();
-      alert('Bienvenido de nuevo');
-    } catch (error) {
-      console.error('Login failed', error);
+    } catch (error: any) {
+      this.formData.error = error.error.message
+      if (password.length <= 6) {
+        this.formData.error = 'La contraseña debe tener una longitud igual o mayor a 6 caracteres'
+      }
+    } finally {
+      this.isLoading = false
     }
   }
 

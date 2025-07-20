@@ -9,7 +9,7 @@ export class AppointmentService {
         private readonly googleCalendarService: GoogleCalendarService,
     ) { }
     async createAppointment(dto: AppointmentDto, userId: string) {
-        const { date, startTime, endTime, serviceId } = dto;
+        const { date, startTime, endTime, serviceId, clientName } = dto;
 
         if (!userId || typeof userId !== 'string') {
             throw new BadRequestException('User ID inválido');
@@ -20,6 +20,7 @@ export class AppointmentService {
                 date,
                 startTime,
                 endTime,
+                clientName,
                 user: {
                     connect: { id: userId },
                 },
@@ -28,13 +29,7 @@ export class AppointmentService {
                 },
             },
             include: {
-                user: {
-                    select: {
-                        id: true,
-                        email: true,
-                        name: true
-                    }
-                },
+                user: { select: { id: true, email: true, name: true } },
                 service: true,
             },
         });
@@ -42,20 +37,61 @@ export class AppointmentService {
         const startDateTime = `${appointment.date}T${appointment.startTime}`;
         const endDateTime = `${appointment.date}T${appointment.endTime}`;
 
-        const googleEvent = await this.googleCalendarService.createEvent({
-            summary: `Cita: ${appointment.service.title}`,
-            description: `Cliente: ${appointment.user.name} (${appointment.user.email})`,
+        const clientDisplayName = appointment.clientName || appointment.user?.name || 'Desconocido';
+
+        await this.googleCalendarService.createEvent({
+            summary: 'Cita con cliente',
             startDateTime,
             endDateTime,
-        });
-
-        await this.prismaService.appointment.update({
-            where: { id: appointment.id },
-            data: { googleEventId: googleEvent.id },
+            price: appointment.service.price,
+            duration: appointment.service.duration,
+            client: clientDisplayName,
+            service: appointment.service.title || 'Sin título',
         });
 
         return appointment;
     }
+
+    async updateAppointment(id: string, dto: AppointmentDto) {
+        const { date, startTime, endTime, serviceId, clientName } = dto;
+
+        try {
+            const appointment = await this.prismaService.appointment.update({
+                where: { id },
+                data: {
+                    date,
+                    startTime,
+                    endTime,
+                    serviceId,
+                    clientName,
+                },
+                include: {
+                    service: true,
+                    user: true,
+                },
+            });
+
+            const startDateTime = `${appointment.date}T${appointment.startTime}`;
+            const endDateTime = `${appointment.date}T${appointment.endTime}`;
+            const clientDisplayName = appointment.clientName || appointment.user?.name || 'Desconocido';
+
+            await this.googleCalendarService.updateEvent({
+                eventId: appointment.googleEventId || '',
+                summary: 'Cita con cliente',
+                startDateTime,
+                endDateTime,
+                price: appointment.service.price,
+                duration: appointment.service.duration,
+                client: clientDisplayName,
+                service: appointment.service.title || 'Sin título',
+            });
+
+            return appointment;
+        } catch (error) {
+            throw new BadRequestException('Error updating appointment');
+        }
+    }
+
 
     async getAppointments() {
         return this.prismaService.appointment.findMany({
@@ -74,7 +110,6 @@ export class AppointmentService {
             }
         })
     }
-
 
     async deleteAppointment(id: string) {
         try {
@@ -105,67 +140,21 @@ export class AppointmentService {
         }
     }
 
+    async syncFromGoogle() {
+        const googleEvents = await this.googleCalendarService.listEvents();
+        const googleEventIds = googleEvents.map(ev => ev.id);
 
-    async updateGoogleEventId(appointmentId: string, googleEventId: string) {
-        return this.prismaService.appointment.update({
-            where: { id: appointmentId },
-            data: { googleEventId },
+        const localAppointments = await this.prismaService.appointment.findMany({
+            where: { googleEventId: { not: null } },
+            select: { id: true, googleEventId: true }
         });
-    }
 
-    async syncFromGoogleCalendar() {
-        const events = await this.googleCalendarService.listEvents();
+        const toDelete = localAppointments.filter(
+            appt => !googleEventIds.includes(appt.googleEventId)
+        );
 
-        for (const event of events) {
-            const existing = await this.prismaService.appointment.findFirst({
-                where: { googleEventId: event.id },
-            });
-
-            const startDate = event.start?.dateTime || event.start?.date;
-            const endDate = event.end?.dateTime || event.end?.date;
-
-            if (!startDate || !endDate) continue;
-
-            const [date, startTime] = startDate.split('T');
-            const [, endTime] = endDate.split('T');
-
-            if (!existing) {
-                // Crear en BD
-                await this.prismaService.appointment.create({
-                    data: {
-                        date,
-                        startTime: startTime?.slice(0, 5) || '00:00',
-                        endTime: endTime?.slice(0, 5) || '00:00',
-                        googleEventId: event.id,
-                        service: {
-                            connectOrCreate: {
-                                where: { id: event.id }, // Use a unique identifier for the service
-                                create: { id: event.id, title: event.summary || 'Sin título', price: 0, duration: 0 },
-                            },
-                        },
-                        user: {
-                            connectOrCreate: {
-                                where: { email: 'unknown@example.com' }, // o intenta parsear del description
-                                create: { name: 'Unknown', email: 'unknown@example.com', password: 'changeme' },
-                            },
-                        },
-                    },
-                });
-            } else {
-                // Actualizar si cambió algo
-                await this.prismaService.appointment.update({
-                    where: { id: existing.id },
-                    data: {
-                        date,
-                        startTime: startTime?.slice(0, 5) || '00:00',
-                        endTime: endTime?.slice(0, 5) || '00:00',
-                    },
-                });
-            }
+        for (const appt of toDelete) {
+            await this.prismaService.appointment.delete({ where: { id: appt.id } });
         }
-
-        return { message: 'Sincronización completada', count: events.length };
     }
-
-
 }

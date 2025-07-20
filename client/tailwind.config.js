@@ -4,7 +4,11 @@ module.exports = {
     "./node_modules/flowbite/**/*.js"
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontSize: {
+        'md': '15px', // 14px
+      }
+    }
   },
   plugins: [
     require('flowbite/plugin')

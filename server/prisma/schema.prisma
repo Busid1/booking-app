@@ -19,13 +19,13 @@ model User {
 }
 
 model Service {
-  id          String   @id @default(uuid())
-  title       String
-  price       Float
-  duration    Int
-  description String?
-  image       String?
-  createdAt   DateTime @default(now())
+  id           String        @id @default(uuid())
+  title        String
+  price        Float
+  duration     Int
+  description  String?
+  image        String?
+  createdAt    DateTime      @default(now())
   appointments Appointment[]
 }
 
@@ -47,14 +47,15 @@ model TimeBlock {
 }
 
 model Appointment {
-  id        String   @id @default(uuid())
-  date      String
-  startTime String
-  endTime   String
-  serviceId String
-  userId    String
+  id            String   @id @default(uuid())
+  date          String
+  startTime     String
+  endTime       String
+  serviceId     String
+  userId        String
   googleEventId String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  clientName    String?
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service       Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
 }

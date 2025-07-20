@@ -13,13 +13,13 @@ import Swal from 'sweetalert2';
 import { Modal } from 'flowbite';
 
 @Component({
-  selector: 'app-appointment',
-  templateUrl: './appointment.component.html',
+  selector: 'app-booking',
+  templateUrl: './booking.component.html',
   standalone: true,
   imports: [DatePickerComponent, CommonModule]
 })
 
-export class AppointmentComponent {
+export class BookingComponent {
   constructor(private appointmentService: AppointmentService, private servicesService: ServicesService, private sharedService: SharedService) { }
   currentStep = 1;
   selectedServiceId: string = ""
@@ -29,7 +29,8 @@ export class AppointmentComponent {
     date: '',
     startTime: '',
     endTime: '',
-    serviceId: ''
+    serviceId: '',
+    clientName: ''
   };
 
   selectedServiceData: ServiceInterface = {
@@ -41,45 +42,36 @@ export class AppointmentComponent {
   dateHourAppointment: string | null = null;
 
   nextStep() {
-    if (this.currentStep === 1 && !this.appointmentData.date) {
-      Swal.fire({
-        title: "Por favor, selecciona una fecha",
-        icon: "warning",
-        confirmButtonText: "Ok",
-        confirmButtonColor: "#22c55e",
-      });
-      return;
-    }
-    if (this.currentStep === 1 && !this.appointmentsAvailable.length) {
-      Swal.fire({
-        title: "No hay horas disponibles para la fecha seleccionada",
-        icon: "warning",
-        confirmButtonText: "Ok",
-        confirmButtonColor: "#22c55e",
-      });
-      return;
-    }
-    if (this.currentStep === 1 && !this.appointmentData.startTime) {
-      Swal.fire({
-        title: "Por favor, selecciona una hora",
-        icon: "warning",
-        confirmButtonText: "Ok",
-        confirmButtonColor: "#22c55e",
-      });
-      return;
+    if (this.currentStep === 1) {
+      if (!this.appointmentData.date) return this.showWarning('Por favor, selecciona una fecha');
+      if (!this.appointmentsAvailable.length) return this.showWarning('No hay horas disponibles para la fecha seleccionada');
+      if (!this.appointmentData.startTime) return this.showWarning('Por favor, selecciona una hora');
     }
 
     if (this.currentStep < 2) this.currentStep++;
   }
 
+  showWarning(message: string) {
+    Swal.fire({
+      title: message,
+      icon: 'warning',
+      confirmButtonText: 'Ok',
+      confirmButtonColor: '#22c55e'
+    });
+  }
+
+
   prevStep() {
     this.currentStep = 1
   }
 
+  isLoading = false;
 
   async handleReserveAppointment(event: Event) {
     event.preventDefault();
     const token = localStorage.getItem("authToken") || "";
+    this.isLoading = true;
+
     try {
       await firstValueFrom(this.appointmentService.createAppointment(this.appointmentData, token));
       Swal.fire({
@@ -93,10 +85,13 @@ export class AppointmentComponent {
         date: '',
         startTime: '',
         endTime: '',
-        serviceId: ''
+        serviceId: '',
+        clientName: ''
       };
     } catch (error) {
       console.log(error)
+    } finally {
+      this.isLoading = false;
     }
   }
 
@@ -131,9 +126,11 @@ export class AppointmentComponent {
   }
 
   async loadAvailableSlots() {
-    const hours = await firstValueFrom(this.servicesService.getBusinessHours());
-    const services = await firstValueFrom(this.servicesService.getServices());
-    const reservedAppointments = await firstValueFrom(this.appointmentService.getAppointments());
+    const [hours, services, reservedAppointments] = await Promise.all([
+      firstValueFrom(this.servicesService.getBusinessHours()),
+      firstValueFrom(this.servicesService.getServices()),
+      firstValueFrom(this.appointmentService.getAppointments())
+    ]);
 
     const selectedService = services.find(s => s.id === this.appointmentData.serviceId);
     if (!selectedService) return;
@@ -158,9 +155,27 @@ export class AppointmentComponent {
 
     const reservedStartTimes = filterAppointments.map(a => toTimeString(toMinutes(a.startTime)));
 
+    const now = new Date();
+    const isToday =
+      this.appointmentData.date === now.toISOString().split('T')[0];
+
     const availableSlots = allSlots.filter(slot => {
       const normalizedSlot = toTimeString(toMinutes(slot));
-      return !reservedStartTimes.includes(normalizedSlot);
+      const isReserved = reservedStartTimes.includes(normalizedSlot);
+
+      if (isReserved) return false;
+
+      if (isToday) {
+        const [slotH, slotM] = slot.split(':').map(Number);
+        const slotMinutes = slotH * 60 + slotM;
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+        if (slotMinutes <= nowMinutes) {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     this.appointmentsAvailable = availableSlots;

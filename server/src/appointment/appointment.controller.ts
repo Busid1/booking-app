@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Delete, Patch, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Delete, Patch, Param, Put } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
 import { AppointmentDto } from 'src/dto/appointment.dto';
 import { GetUser } from 'src/auth/get-user.decorator';
@@ -33,17 +33,14 @@ export class AppointmentController {
         return this.appointmentService.deleteAppointment(id);
     }
 
-    @Patch(':id/google-event')
-    updateGoogleEventId(
-        @Param('id') id: string,
-        @Body('googleEventId') googleEventId: string,
-    ) {
-        return this.appointmentService.updateGoogleEventId(id, googleEventId);
-    }
     @Patch('/sync-from-google')
     async syncFromGoogle() {
-        return this.appointmentService.syncFromGoogleCalendar();
+        return this.appointmentService.syncFromGoogle();
     }
 
-
+    @Put('update-appointment/:id')
+    async updateAppointment(@Param('id') id: string, @Body() appointmentDto: AppointmentDto,
+    ) {
+        return this.appointmentService.updateAppointment(id, appointmentDto);
+    }
 }

@@ -7,6 +7,7 @@ import { HttpClient } from '@angular/common/http';
 @Injectable({
     providedIn: 'root'
 })
+
 export class AuthService{
     protected http = inject(HttpClient);
     private isAuthenticated = this.handleIsAuthenticated();
@@ -31,7 +32,6 @@ export class AuthService{
         if (localStorage.getItem("authToken")) {
             this.isAuthenticated = true;
             this.router.navigate(['/']);
-            console.log("Te has logueado");
         }
     }
 

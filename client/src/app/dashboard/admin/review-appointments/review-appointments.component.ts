@@ -1,14 +1,14 @@
 import { Component } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { CalendarComponent } from '../calendar/calendar.component';
 import { SharedService } from '../../../shared/services/shared.service';
 
 @Component({
   selector: 'app-reviewAppointments',
-  standalone: true,
-  imports: [CurrencyPipe, CalendarComponent],
+  imports: [CurrencyPipe, CommonModule, CalendarComponent],
   templateUrl: './review-appointments.component.html',
-  styleUrl: './review-appointments.component.scss'
+  styleUrl: './review-appointments.component.scss',
+  standalone: true,
 })
 
 export class ReviewAppointmentsComponent {

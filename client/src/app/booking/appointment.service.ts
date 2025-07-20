@@ -36,16 +36,17 @@ export class AppointmentService {
             body: { id: id }
         });
     }
-    
-    updateGoogleEventId(appointmentId: string, googleEventId: string): Observable<AppointmentInterface> {
-        return this.http.patch<AppointmentInterface>(
-            `${environment.apiUrl}/${appointmentId}/google-event`,
-            { googleEventId }
-        );
-    }
 
     syncFromGoogle(): Observable<void> {
         return this.http.patch<void>(`${environment.apiUrl}/sync-from-google`, {});
+    }
+
+    updateAppointment(appointmentData: AppointmentInterface, token: string, id: string): Observable<AppointmentInterface>{
+        return this.http.put<AppointmentInterface>(`${environment.apiUrl}/update-appointment/${id}`, appointmentData, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
     }
 
 }
