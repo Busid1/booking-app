@@ -29,7 +29,7 @@
         <div>
           <label class="block mb-1 text-sm font-medium text-gray-700">Fecha</label>
           <input type="date" [value]="appointmentData.date" disabled
-            class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
+            class="bg-gray-100 border cursor-not-allowed border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
         </div>
 
         <div class="flex gap-2">
@@ -40,8 +40,8 @@
           </div>
           <div class="flex-1">
             <label class="block mb-1 text-sm font-medium text-gray-700">Hora fin</label>
-            <input type="time" [(ngModel)]="appointmentData.endTime" name="endTime" required
-              class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" readonly />
+            <input type="time" [(ngModel)]="appointmentData.endTime" name="endTime" required disabled
+              class="bg-gray-100 border cursor-not-allowed border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" readonly />
           </div>
         </div>
 
