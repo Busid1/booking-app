@@ -1,4 +1,6 @@
+const BASE_URL = process.env['BASE_URL'] || 'http://localhost:2000';
+
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:2000'
+  apiUrl: BASE_URL
 };
