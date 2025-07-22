@@ -39,9 +39,6 @@ export default class LoginComponent {
       this.authService.login();
     } catch (error: any) {
       this.formData.error = error.error.message
-      if (password.length <= 6) {
-        this.formData.error = 'La contraseña debe tener una longitud igual o mayor a 6 caracteres'
-      }
     } finally {
       this.isLoading = false
     }
