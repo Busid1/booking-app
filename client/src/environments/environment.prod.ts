@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: ''
+  apiUrl: 'https://booking-app-4drx.onrender.com'
 };
