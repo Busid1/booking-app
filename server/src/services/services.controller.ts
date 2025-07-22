@@ -5,7 +5,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { uploadToCloudinary } from 'src/cloudinary/uploadImage';
 import * as multer from 'multer';
 
-@Controller('services')
+@Controller('api/services')
 export class ServicesController {
     constructor(private readonly servicesService: ServicesService) { }
 

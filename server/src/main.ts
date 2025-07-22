@@ -3,7 +3,6 @@ import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
 import * as express from 'express';
 import { join } from 'path';
-import { existsSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -22,7 +21,6 @@ async function bootstrap() {
   app.use((req, res) => {
     res.sendFile(join(clientPath, 'index.html'));
   });
-
 
   const port = process.env.PORT || 2000;
   await app.listen(port);

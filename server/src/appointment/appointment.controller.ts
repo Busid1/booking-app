@@ -4,7 +4,7 @@ import { AppointmentDto } from 'src/dto/appointment.dto';
 import { GetUser } from 'src/auth/get-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 
-@Controller()
+@Controller('api')
 export class AppointmentController {
     constructor(private readonly appointmentService: AppointmentService) { }
 
