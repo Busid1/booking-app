@@ -8,31 +8,30 @@ import { existsSync } from 'fs';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
-
-  app.enableCors({
-    origin: '*',
-    credentials: true,
-  });
+  app.enableCors({ origin: '*', credentials: true });
 
   const clientPath = join(__dirname, '..', '..', 'client', 'dist', 'frontend', 'browser');
+  console.log('📁 Serving frontend from:', clientPath);
 
   if (!existsSync(join(clientPath, 'index.html'))) {
-    throw new Error(`index.html not found in ${clientPath}`);
+    throw new Error(`index.html no encontrado en ${clientPath}`);
   }
 
   app.use(express.static(clientPath));
 
-  app.use((req, res, next) => {
+  const port = process.env.PORT || 2000;
+  await app.listen(port);
+  console.log(`🚀 App listening at http://localhost:${port}`);
+
+  const httpAdapter = app.getHttpAdapter().getInstance();
+
+  httpAdapter.use((req, res, next) => {
     if (req.originalUrl.startsWith('/api')) {
       return next();
     }
-
     res.sendFile(join(clientPath, 'index.html'));
   });
-
-  const port = process.env.PORT || 2000;
-  await app.listen(port);
-  console.log(`🚀 App listening on http://localhost:${port}`);
 }
 bootstrap();
