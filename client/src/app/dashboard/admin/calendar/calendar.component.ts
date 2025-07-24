@@ -82,10 +82,17 @@ export class CalendarComponent {
     slotMinTime: '00:00:00',
     slotMaxTime: '24:00:00',
     slotDuration: '00:30:00',
+    aspectRatio: window.innerWidth < 640 ? 1 : 1.35,
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
       right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+    },
+    dayHeaderContent: (arg) => {
+      const width = window.innerWidth;
+      return width < 500
+        ? arg.date.toLocaleDateString('es-ES', { weekday: 'narrow' })
+        : arg.date.toLocaleDateString('es-ES', { weekday: 'short' });
     },
     events: [],
     dateClick: this.handleCreateAppointment.bind(this),

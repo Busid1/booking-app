@@ -16,6 +16,7 @@ export class DatePickerComponent {
 
   @Output() dateSelected = new EventEmitter<string>();
   @Output() hourSelected = new EventEmitter<string>();
+  @Output() isLoadingHours = new EventEmitter<boolean>();
 
   getTodayDate(): string {
     const today = new Date();
@@ -30,6 +31,7 @@ export class DatePickerComponent {
   handleDateChange(event: Event) {
     const input = event.target as HTMLInputElement;
     this.dateSelected.emit(input.value);
+    this.isLoadingHours.emit(true)
   }
 
   handleSelectedHourDate(hour: string) {

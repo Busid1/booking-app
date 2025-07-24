@@ -99,7 +99,9 @@ export class ServicesComponent implements AfterViewInit {
   }
 
   async ngOnInit() {
+    this.isLoadingModal = true
     await this.sharedService.loadAllServices();
+    this.isLoadingModal = false
     this.sharedService.allServices$.subscribe(data => {
       this.allServices = data;
     });

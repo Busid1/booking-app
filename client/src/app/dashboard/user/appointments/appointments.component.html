@@ -1,43 +1,51 @@
 <div class="p-6 mt-20">
-    <div class="bg-white shadow-sm rounded-lg p-6 max-w-screen-lg mx-auto">
-        <h3 class="text-2xl font-bold text-gray-900 mb-3">Mis citas</h3>
-        <table class="w-full shadow text-sm text-left rtl:text-right text-gray-800">
-            <thead class="text-xs text-gray-800 uppercase bg-gray-200">
-                <tr>
-                    <th scope="col" class="px-6 py-3">
-                        Servicio
-                    </th>
-                    <th scope="col" class="px-6 py-3">
-                        Fecha
-                    </th>
-                    <th scope="col" class="px-6 py-3">
-                        Hora
-                    </th>
-                    <th scope="col" class="px-6 py-3">
-                        Precio
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                @if(appointmentsData.length > 0){
-                    @for(appointment of appointmentsData; track appointment){
-                    <tr class="bg-gray-50 hover:bg-gray-100 transition text-gray-800 border-b last:border-b-0">
-                        <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                            {{appointment.service.title}}
-                        </th>
-                        <td class="px-6 py-4">{{appointment.date | date: 'dd/MM/yyyy'}}</td>
-                        <td class="px-6 py-4">{{appointment.startTime}} - {{appointment.endTime}}</td>
-                        <td class="px-6 py-4">{{appointment.service.price | currency: "EUR"}}
-                        <td>
-                    </tr>
-                    }
-                }
-                @else {
-                    <tr class="bg-white w-full text-center">
-                        <th colspan="4" class="p-5 text-lg">Todavía no hay citas</th>
-                    </tr>
-                }
-            </tbody>
-        </table>
+  <div class="bg-white shadow-sm rounded-lg p-6 max-w-screen-lg mx-auto">
+    <h3 class="text-2xl font-bold text-gray-900 mb-3">Mis citas</h3>
+
+    <div class="hidden md:block">
+      <table class="w-full text-sm text-left text-gray-800">
+        <thead class="text-xs uppercase bg-gray-200 text-gray-800">
+          <tr>
+            <th class="px-6 py-3">Servicio</th>
+            <th class="px-6 py-3">Fecha</th>
+            <th class="px-6 py-3">Hora</th>
+            <th class="px-6 py-3">Precio</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if(appointmentsData.length > 0){
+            @for(appointment of appointmentsData; track appointment){
+              <tr class="bg-gray-50 hover:bg-gray-100 transition border-b">
+                <td class="px-6 py-4 font-medium whitespace-nowrap">{{appointment.service.title}}</td>
+                <td class="px-6 py-4">{{appointment.date | date: 'dd/MM/yyyy'}}</td>
+                <td class="px-6 py-4">{{appointment.startTime}} - {{appointment.endTime}}</td>
+                <td class="px-6 py-4">{{appointment.service.price | currency: "EUR"}}</td>
+              </tr>
+            }
+          }
+          @else {
+            <tr>
+              <td colspan="4" class="p-5 text-center text-lg">Todavía no hay citas</td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
+
+    <div class="md:hidden space-y-4">
+      @if(appointmentsData.length > 0){
+        @for(appointment of appointmentsData; track appointment){
+          <div class="bg-gray-100 rounded-lg p-4 shadow">
+            <p class="text-sm"><span class="font-semibold">Servicio:</span> {{appointment.service.title}}</p>
+            <p class="text-sm"><span class="font-semibold">Fecha:</span> {{appointment.date | date: 'dd/MM/yyyy'}}</p>
+            <p class="text-sm"><span class="font-semibold">Hora:</span> {{appointment.startTime}} - {{appointment.endTime}}</p>
+            <p class="text-sm"><span class="font-semibold">Precio:</span> {{appointment.service.price | currency: "EUR"}}</p>
+          </div>
+        }
+      }
+      @else {
+        <div class="text-center text-lg text-gray-700">Todavía no hay citas</div>
+      }
+    </div>
+  </div>
 </div>

@@ -1,43 +1,75 @@
-<div class="p-6 mt-20">
+<div class="p-6 max-sm:p-4 mt-20">
   <div class="max-w-screen-lg mx-auto flex flex-col gap-8">
-    <div class="bg-white rounded-lg p-6 shadow-md">
+    <div class="bg-white rounded-lg p-6 max-sm:p-4 shadow-md">
       <h3 class="text-2xl font-bold text-gray-900 mb-4">Resumen de citas</h3>
-      <table class="w-full text-sm text-left shadow-md">
-        <thead class="text-xs uppercase bg-gray-200 text-gray-800">
-          <tr>
-            <th scope="col" class="px-6 py-3">Servicio</th>
-            <th scope="col" class="px-6 py-3">Fecha</th>
-            <th scope="col" class="px-6 py-3">Hora</th>
-            <th scope="col" class="px-6 py-3">Precio</th>
-          </tr>
-        </thead>
 
-        <tbody>
+      <div class="overflow-x-auto">
+        <table class="hidden md:table w-full text-sm text-left shadow-md">
+          <thead class="text-xs uppercase bg-gray-200 text-gray-800">
+            <tr>
+              <th scope="col" class="px-6 py-3">Servicio</th>
+              <th scope="col" class="px-6 py-3">Fecha</th>
+              <th scope="col" class="px-6 py-3">Hora</th>
+              <th scope="col" class="px-6 py-3">Precio</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if(appointmentsData.length > 0){
+            @for(appointment of appointmentsData; track appointment.id){
+            <tr class="bg-gray-50 border-b last:border-b-0 hover:bg-gray-100 transition">
+              <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap truncate max-w-[150px]">
+                {{ appointment.service.title }}
+              </th>
+              <td class="px-6 py-4">{{ appointment.date | date: 'dd/MM/yyyy'}}</td>
+              <td class="px-6 py-4">{{ appointment.startTime }} - {{ appointment.endTime }}</td>
+              <td class="px-6 py-4">{{ appointment.service.price | currency: "EUR" }}</td>
+            </tr>
+            }
+            } @else {
+            <tr>
+              <td colspan="4" class="p-6 text-center text-gray-600 bg-white rounded-b-lg">
+                <div class="text-lg">Todavía no hay citas</div>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="md:hidden flex flex-col gap-4">
           @if(appointmentsData.length > 0){
           @for(appointment of appointmentsData; track appointment.id){
-          <tr class="bg-gray-50 border-b last:border-b-0 hover:bg-gray-100 transition">
-            <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-              {{ appointment.service.title }}
-            </th>
-            <td class="px-6 py-4">{{ appointment.date | date: 'dd/MM/yyyy'}}</td>
-            <td class="px-6 py-4">
-              {{ appointment.startTime }} - {{ appointment.endTime }}
-            </td>
-            <td class="px-6 py-4">
-              {{ appointment.service.price | currency: "EUR" }}
-            </td>
-          </tr>
+          <div class="bg-gray-100 rounded-lg p-4 shadow flex flex-col gap-2">
+            <div>
+              <span class="font-semibold text-gray-700">Servicio: </span>
+              <span class="text-gray-900">{{ appointment.service.title }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-gray-700">Fecha: </span>
+              <span class="text-gray-900">{{ appointment.date | date: 'dd/MM/yyyy' }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-gray-700">Hora: </span>
+              <span class="text-gray-900">{{ appointment.startTime }} - {{ appointment.endTime }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-gray-700">Precio: </span>
+              <span class="text-gray-900">{{ appointment.service.price | currency: "EUR" }}</span>
+            </div>
+          </div>
           }
           } @else {
-          <tr>
-            <td colspan="4" class="p-6 text-center text-gray-600 bg-white rounded-b-lg">
-              <div class="text-lg">Todavía no hay citas</div>
-            </td>
-          </tr>
+          <div class="text-center text-gray-600 text-lg">Todavía no hay citas</div>
           }
-        </tbody>
-      </table>
+        </div>
+      </div>
     </div>
+
     <app-calendar [appointments]="appointmentsData"></app-calendar>
   </div>
 </div>
+
+@if(isLoading){
+<div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+  <div class="animate-spin rounded-full h-12 w-12 border-t-8 border-blue-500"></div>
+</div>
+}

@@ -14,9 +14,12 @@ import { SharedService } from '../../../shared/services/shared.service';
 export class ReviewAppointmentsComponent {
   constructor(private sharedService: SharedService) { }
   appointmentsData: any = []
+  isLoading: boolean = false;
 
   async ngOnInit() {
+    this.isLoading = true
     await this.sharedService.loadAllAppointments();
+    this.isLoading = false
     this.sharedService.appointments$.subscribe(data => {
       this.appointmentsData = data;
     });

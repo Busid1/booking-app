@@ -60,7 +60,6 @@ export class BookingComponent {
     });
   }
 
-
   prevStep() {
     this.currentStep = 1
   }

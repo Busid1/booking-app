@@ -10,10 +10,9 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
-  app.enableCors({ origin: '*', credentials: true });
+  app.enableCors({ origin: true, credentials: true });
 
   const clientPath = join(__dirname, '..', '..', 'client', 'dist', 'frontend', 'browser');
-  console.log('📁 Serving frontend from:', clientPath);
 
   if (!existsSync(join(clientPath, 'index.html'))) {
     throw new Error(`index.html no encontrado en ${clientPath}`);
@@ -23,7 +22,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 2000;
   await app.listen(port);
-  console.log(`🚀 App listening at http://localhost:${port}`);
+  console.log(`🚀 App listening at port ${port}`);
 
   const httpAdapter = app.getHttpAdapter().getInstance();
 

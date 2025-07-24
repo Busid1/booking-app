@@ -6,4 +6,36 @@
   --fc-button-hover-bg-color: #e5e7eb;
   --fc-button-hover-border-color: #e5e7eb;
   --fc-button-active-border-color: #d1d5db;
+  --fc-daygrid-event-font-size: 10px;
+}
+
+
+@media (max-width: 640px) {
+  ::ng-deep .fc .fc-header-toolbar {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem;
+    justify-content: space-between;
+  }
+
+  ::ng-deep .fc .fc-header-toolbar>div {
+    flex: 1 1 auto;
+    min-width: 120px;
+    font-size: 14px;
+  }
+
+  ::ng-deep .fc-view-harness {
+    height: 400px !important;
+  }
+
+  ::ng-deep .fc-event {
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  ::ng-deep .fc-daygrid-day-number{
+    font-size: 14px;
+  }
 }
