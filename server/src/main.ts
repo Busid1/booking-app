@@ -20,17 +20,17 @@ async function bootstrap() {
 
   app.use(express.static(clientPath));
 
-  const port = process.env.PORT || 2000;
-  await app.listen(port);
-  console.log(`🚀 App listening at port ${port}`);
-
   const httpAdapter = app.getHttpAdapter().getInstance();
-
+  
   httpAdapter.use((req, res, next) => {
     if (req.originalUrl.startsWith('/api')) {
       return next();
     }
     res.sendFile(join(clientPath, 'index.html'));
   });
+  
+  const port = process.env.PORT || 2000;
+  await app.listen(port);
+  console.log(`🚀 App listening at port ${port}`);
 }
 bootstrap();
