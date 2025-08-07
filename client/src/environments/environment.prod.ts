@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:5001'
+  apiUrl: 'https://bookly-api-115796447501.europe-west1.run.app'
 };
