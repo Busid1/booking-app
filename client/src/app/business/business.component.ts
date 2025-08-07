@@ -13,8 +13,13 @@ import { ServicesComponent } from "../services/services.component";
 
 export class BusinessComponent {
   constructor(private authService: AuthService) { }
+  isClosePopup: boolean = false;
 
   isAdmin() {
     return this.authService.isAdmin();
+  }
+
+  closePopup(){
+    this.isClosePopup = true;
   }
 }

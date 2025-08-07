@@ -69,6 +69,18 @@ export class BookingComponent {
   async handleReserveAppointment(event: Event) {
     event.preventDefault();
     const token = localStorage.getItem("authToken") || "";
+
+    if (!token) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'No autorizado',
+        text: 'Debes iniciar sesión para reservar una cita',
+        confirmButtonText: 'Ok',
+        confirmButtonColor: '#f87171',
+      });
+      return;
+    }
+
     this.isLoading = true;
 
     try {

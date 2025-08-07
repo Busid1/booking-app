@@ -25,6 +25,7 @@ export class ServicesComponent implements AfterViewInit {
   serviceFormData: ServiceInterface | null = null;
   serviceId: string = "";
   isLoadingModal: boolean = false;
+  isLoadingServices: boolean = false;
 
   isAdmin() {
     return this.authService.isAdmin();
@@ -99,9 +100,9 @@ export class ServicesComponent implements AfterViewInit {
   }
 
   async ngOnInit() {
-    this.isLoadingModal = true
+    this.isLoadingServices = true
     await this.sharedService.loadAllServices();
-    this.isLoadingModal = false
+    this.isLoadingServices = false
     this.sharedService.allServices$.subscribe(data => {
       this.allServices = data;
     });

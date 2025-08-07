@@ -15,6 +15,7 @@ import { SharedService } from '../../../shared/services/shared.service';
 import { AppointmentService } from '../../../booking/appointment.service';
 import { ModalCreateAppointmentComponent } from './modal-create-appointment/modal-create-appointment.component';
 import { AuthService } from '../../../auth/auth.service';
+import { calculateEndTime } from '../../../shared/services/time.utils';
 
 @Component({
   selector: 'app-calendar',
@@ -113,12 +114,13 @@ export class CalendarComponent {
       backgroundColor: '#0ea5e9',
       textColor: '#fff',
       extendedProps: {
-        clientName: app.clientName || app.user?.name || "gay",
+        clientName: app.clientName || app.user?.name || "Pepe",
+        duration: app.service?.duration || 0,
         price: app.service?.price,
         appointmentId: app?.id,
         googleEventId: app.googleEventId || null
       }
-    }));
+    }));    
   }
 
   handleCreateAppointment(arg: DateClickArg) {
@@ -139,18 +141,21 @@ export class CalendarComponent {
     }
 
     const { title, start, end, extendedProps } = info.event;
-    this.specificDateInfo = {
-      title: title,
-      startTime: start
-        ? start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        : '',
-      endTime: end
-        ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        : '',
-      dateDay: this.selectedDate || '',
-      price: extendedProps['price'],
-      clientName: extendedProps['clientName'],
-      appointmentId: extendedProps['appointmentId']
+    
+    if (start) {
+      this.specificDateInfo = {
+        title: title,
+        startTime: start
+          ? start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '',
+        endTime: end
+          ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : calculateEndTime(start, extendedProps['duration']),
+        dateDay: this.selectedDate || '',
+        price: extendedProps['price'],
+        clientName: extendedProps['clientName'],
+        appointmentId: extendedProps['appointmentId']
+      }
     }
 
     this.openModal("readUpdateAppointmentModal")

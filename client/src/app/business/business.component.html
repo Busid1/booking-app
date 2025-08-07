@@ -4,4 +4,25 @@
     <app-business-hours></app-business-hours>
     }
     <app-services></app-services>
+    <div>
+        @if(!isClosePopup){
+        <div
+            class="fixed bottom-20 right-4 bg-white shadow-lg px-4 py-2 rounded-xl text-sm flex items-center gap-2 animate-bounce z-50">
+            <span class="font-medium text-gray-800">Reserva tu cita por WhatsApp</span>
+            <span class="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">New</span>
+            <button (click)="closePopup()" class="text-gray-400 hover:bg-red-600 px-2 rounded-full hover:text-white text-xl font-bold">
+                &times;
+            </button>
+        </div>
+        }
+
+        <a href="https://wa.me/15551833415" target="_blank"
+            class="fixed bottom-4 right-4 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg z-50"
+            aria-label="Contactar por WhatsApp">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                    d="M12.04 2.004c-5.513 0-9.999 4.484-9.999 10.001 0 1.763.465 3.487 1.345 5.002l-1.406 5.129 5.268-1.379a9.95 9.95 0 004.792 1.213h.001c5.514 0 9.999-4.484 9.999-10.001 0-5.516-4.485-10-10-10zm0 18.004a7.962 7.962 0 01-4.1-1.131l-.292-.174-3.124.818.834-3.07-.19-.315a7.95 7.95 0 01-1.245-4.34c0-4.411 3.589-8.001 8.001-8.001s8 3.59 8 8.001-3.589 8.001-8 8.001zm4.539-5.939c-.242-.121-1.435-.707-1.657-.787-.222-.082-.384-.121-.547.122-.161.242-.628.787-.77.949-.141.161-.283.181-.525.06-.242-.121-1.02-.376-1.943-1.2-.719-.641-1.204-1.432-1.345-1.674-.141-.242-.015-.373.106-.494.11-.109.242-.283.363-.424.121-.141.161-.242.242-.403.081-.161.04-.303-.02-.424-.06-.121-.546-1.318-.749-1.807-.197-.473-.399-.409-.546-.416l-.464-.009c-.161 0-.424.06-.646.303s-.85.83-.85 2.026c0 1.197.87 2.355.99 2.517.121.161 1.71 2.61 4.144 3.662.58.25 1.031.398 1.384.509.582.185 1.112.159 1.531.097.467-.07 1.435-.586 1.639-1.152.202-.566.202-1.051.141-1.152-.06-.1-.22-.161-.462-.282z" />
+            </svg>
+        </a>
+    </div>
 </div>
