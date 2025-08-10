@@ -5,7 +5,7 @@ import 'dotenv/config';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: '*',
+    origin: 'https://bookly-39896.web.app',
     credentials: true,
   });
 
