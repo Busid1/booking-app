@@ -11,16 +11,6 @@ export const routes: Routes = [
         loadChildren: () => import('./auth/auth.routes'),
     },
     {
-        path: '',
-        loadChildren: () => import('./dashboard/dashboard.routes'),
-        canActivate: [AuthGuard],
-        canMatch: [AuthGuard]
-    },
-    {
-        path: 'mis-citas',
-        loadComponent: () => import('./dashboard/user/appointments/appointments.component').then(m => m.AppointmentsComponent),
-    },
-    {
         path: '**',
         redirectTo: ''
     },

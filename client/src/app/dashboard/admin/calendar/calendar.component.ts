@@ -100,9 +100,6 @@ export class CalendarComponent {
     dayMaxEvents: 3,
     moreLinkClick: 'popover',
     eventClick: this.handleEventClick.bind(this),
-    validRange: {
-      start: new Date().toLocaleDateString('sv-SE')
-    }
   };
 
   ngOnChanges(): void {

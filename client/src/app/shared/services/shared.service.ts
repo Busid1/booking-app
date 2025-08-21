@@ -37,4 +37,12 @@ export class SharedService {
     const allServices = await firstValueFrom(this.servicesService.getServices());
     this.allServicesSubject.next(allServices);
   }
+
+  private allBusinessHoursSubject = new BehaviorSubject<any>([]);
+  allBusinessHours$ = this.allBusinessHoursSubject.asObservable();
+
+  async loadAllBusinessHours(): Promise<void> {
+    const allBusinessHours = await firstValueFrom(this.servicesService.getBusinessHours());
+    this.allBusinessHoursSubject.next(allBusinessHours);
+  }
 }

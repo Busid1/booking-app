@@ -1,5 +1,5 @@
 <nav class="bg-white shadow-sm fixed top-0 left-0 w-full z-50">
-  <div class="max-w-screen-lg flex flex-wrap items-center justify-between mx-auto py-4 px-6">
+  <div class="max-w-screen-lg flex flex-wrap items-center max-sm:px-5 justify-between mx-auto py-3 px-10">
     <a href="/" class="flex items-center space-x-2 rtl:space-x-reverse">
       <span class="self-center text-2xl font-semibold whitespace-nowrap text-gray-900">Bookly</span>
     </a>
@@ -13,13 +13,6 @@
       <ul class="font-medium flex flex-col max-sm:py-3 md:p-0 mt-0">
         @if(handleIsAuthenticated()){
         <li class="flex items-center gap-5">
-          @if(!isAdmin()){
-          <a routerLink="/mis-citas">
-        <li class="text-white bg-blue-600 hover:bg-blue-700 transition px-3 py-2 max-sm:text-sm text-md rounded-md">Ver
-          mis
-          citas</li>
-        </a>
-        }
         <a routerLink="/" (click)="logout()"
           class="block py-2 px-3 text-gray-900 rounded-md bg-gray-200 hover:bg-red-600 max-sm:text-sm text-md hover:text-white transition">Cerrar
           sesión</a>

@@ -1,15 +1,9 @@
-<div class="flex flex-wrap gap-3 items-center justify-end">
-    <a routerLink="/revisar-citas">
-        <button type="button"
-        class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800 transition">
-            <i class="fas fa-eye mr-1.5"></i>
-            Revisar citas
-        </button>
-    </a>
-    <button type="button" data-modal-target="createServiceModal" data-modal-toggle="createServiceModal" (click)="handleActiveModal()"
-        class="focus:outline-none text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 me-2 mb-2 dark:focus:ring-green-900 transition">
-        <i class="fas fa-plus mr-1.5"></i>
-        Crear servicio
-    </button>
-</div>
+<button type="button" (click)="handleActiveModal()" class="flex w-full text-gray-800 border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex-wrap gap-3 items-center justify-center flex-col p-10 h-full bg-slate-100 rounded-xl">
+    <i class="fas fa-plus text-6xl"></i>
+    <div class="flex items-start justify-between mb-3">
+        <h3 class="text-xl font-semibold text-gray-800 group-hover:text-blue-600 transition-colors truncate">
+            Añadir servicio
+        </h3>
+    </div>
+</button>
 <app-create-service (closeModal)="handleCloseModal()"></app-create-service>

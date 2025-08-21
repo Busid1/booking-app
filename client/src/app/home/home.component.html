@@ -1,3 +1,58 @@
-<div class="container max-w-screen-lg mx-auto p-6 max-sm:p-4 mt-20">
+<div class="flex justify-center mt-32 max-w-screen-lg mx-auto px-10 max-sm:px-5">
+  <div class="bg-white rounded-xl p-1 max-sm:justify-center shadow-sm border border-gray-200 flex flex-wrap">
+    <button (click)="setActiveTab('info')"
+      class="flex items-center justify-center flex-1 gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200" [ngClass]="{
+        'bg-blue-600 text-white shadow-sm': activeTab === 'info',
+        'text-gray-600 hover:text-blue-600 hover:bg-blue-50': activeTab !== 'info'
+      }">
+      <i class="fas fa-info"></i> Información
+    </button>
+
+    <button (click)="setActiveTab('services')"
+      class="flex items-center justify-center flex-1 text-nowrap gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200" [ngClass]="{
+        'bg-blue-600 text-white shadow-sm': activeTab === 'services',
+        'text-gray-600 hover:text-blue-600 hover:bg-blue-50': activeTab !== 'services'
+      }">
+      @if(isAdmin()){
+      <i class="fas fa-pencil-alt"></i> Editar/Crear servicio
+      } @else {
+      <i class="fas fa-star"></i> Servicios + Pedir cita
+      }
+    </button>
+    @if(isAdmin()){
+    <button (click)="setActiveTab('calendar')"
+      class="flex items-center justify-center flex-1 gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200" [ngClass]="{
+        'bg-blue-600 text-white shadow-sm': activeTab === 'calendar',
+        'text-gray-600 hover:text-blue-600 hover:bg-blue-50': activeTab !== 'calendar'
+      }">
+      <i class="fas fa-calendar-check"></i> Calendario
+    </button>
+    } @else {
+    <button (click)="setActiveTab('view')"
+      class="flex items-center justify-center flex-1 gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200" [ngClass]="{
+              'bg-blue-600 text-white shadow-sm': activeTab === 'view',
+              'text-gray-600 hover:text-blue-600 hover:bg-blue-50': activeTab !== 'view'
+            }">
+      <i class="fas fa-search"></i> Mis Citas
+    </button>
+    }
+  </div>
+</div>
+
+<div class="px-10 max-sm:px-5 mt-10 max-w-screen-lg mx-auto">
+  <div *ngIf="activeTab === 'info'">
     <app-business></app-business>
+  </div>
+
+  <div *ngIf="activeTab === 'services'">
+    <app-services></app-services>
+  </div>
+
+  <div *ngIf="activeTab === 'calendar'">
+    <app-reviewAppointments></app-reviewAppointments>
+  </div>
+
+  <div *ngIf="activeTab === 'view'">
+    <app-appointments></app-appointments>
+  </div>
 </div>

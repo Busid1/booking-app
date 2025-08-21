@@ -9,12 +9,13 @@ import Swal from 'sweetalert2';
 import { AuthService } from '../auth/auth.service';
 import { BookingComponent } from '../booking/booking.component';
 import { SharedService } from '../shared/services/shared.service';
+import { AdminButtonsComponent } from '../dashboard/admin/admin-buttons/admin-buttons.component';
 
 @Component({
   selector: 'app-services',
   templateUrl: './services.component.html',
   standalone: true,
-  imports: [CurrencyPipe, UpdateServiceComponent, BookingComponent],
+  imports: [CurrencyPipe, UpdateServiceComponent, BookingComponent, AdminButtonsComponent],
 })
 
 export class ServicesComponent implements AfterViewInit {
