@@ -1,12 +1,11 @@
 import { Component } from '@angular/core';
 import { Modal } from 'flowbite';
 import { CreateServiceComponent } from '../crud/create-service/create-service.component';
-import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-admin-buttons',
   standalone: true,
-  imports: [CreateServiceComponent, RouterLink],
+  imports: [CreateServiceComponent],
   templateUrl: './admin-buttons.component.html',
 })
 export class AdminButtonsComponent {

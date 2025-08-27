@@ -10,7 +10,7 @@ export class ServicesController {
     constructor(private readonly servicesService: ServicesService) { }
 
     @Post('create-service')
-    @UseInterceptors(FileInterceptor('image', { storage: multer.memoryStorage() }))
+    @UseInterceptors(FileInterceptor('image', { storage: multer?.memoryStorage() }))
     async createService(
         @Body() serviceDto: ServiceDto,
         @UploadedFile() file?: Express.Multer.File

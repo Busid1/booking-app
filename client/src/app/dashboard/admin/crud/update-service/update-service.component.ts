@@ -47,33 +47,7 @@ export class UpdateServiceComponent {
     this.closeModal.emit();
   }
 
-  handleInputChange(field: keyof ServiceInterface, event: Event) {
-    const value = (event.target as HTMLInputElement).value;
-
-    if (!this.serviceFormData) return;
-
-    if (field === 'price') {
-      const parsed = parseFloat(value);
-      this.serviceFormData.price = isNaN(parsed) ? 0 : parsed;
-    } else if (field === 'duration') {
-      const parsed = parseInt(value, 10);
-      this.serviceFormData.duration = isNaN(parsed) ? 0 : parsed;
-    } else {
-      this.serviceFormData[field] = value;
-    }
-  }
-
-  handleFileChange(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file?.type.startsWith('image/')) {
-      Swal.fire({ icon: 'error', text: 'Por favor selecciona solo imágenes.' });
-      return;
-    }
-
-    this.serviceFormData.image = file;
-  }
-
-  async handleSubmit(serviceData: ServiceInterface) {
+  async handleSubmit(serviceData: ServiceInterface) {        
     if (!serviceData.title?.trim()) {
       Swal.fire({ icon: 'warning', text: 'El nombre del servicio es obligatorio.' });
       return;

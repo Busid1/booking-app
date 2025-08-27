@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { ServicesModule } from './services/services.module';
 import { BusinessHoursModule } from './business-hours/business-hours.module';
 import { AppointmentModule } from './appointment/appointment.module';
+import { BusinessInfoModule } from './business-info/business-info.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AppointmentModule } from './appointment/appointment.module';
     AuthModule,
     BusinessHoursModule,
     AppointmentModule,
+    BusinessInfoModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

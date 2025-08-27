@@ -24,6 +24,7 @@ export class BookingComponent {
   currentStep = 1;
   selectedServiceId: string = ""
   private modal: Modal | null = null;
+  isLoadingHours: boolean = false
 
   appointmentData: AppointmentInterface = {
     date: '',
@@ -64,7 +65,7 @@ export class BookingComponent {
     this.currentStep = 1
   }
 
-  isLoading = false;
+  isLoading: boolean = false;
 
   async handleReserveAppointment(event: Event) {
     event.preventDefault();
@@ -137,6 +138,7 @@ export class BookingComponent {
   }
 
   async loadAvailableSlots() {
+    this.isLoadingHours = true;
     const [hours, services, reservedAppointments] = await Promise.all([
       firstValueFrom(this.servicesService.getBusinessHours()),
       firstValueFrom(this.servicesService.getServices()),
@@ -154,6 +156,7 @@ export class BookingComponent {
     if (!dayHours) return;
 
     if (dayHours.isClosed) {
+          this.isLoadingHours = false;
       this.appointmentsAvailable = [];
       return;
     }
@@ -187,9 +190,10 @@ export class BookingComponent {
       }
 
       return true;
-    });
+    });    
 
     this.appointmentsAvailable = availableSlots;
+    this.isLoadingHours = false;
   }
 
   async ngOnInit() {

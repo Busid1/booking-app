@@ -1,13 +1,14 @@
 import { Component } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
-import { AdminButtonsComponent } from '../../dashboard/admin/admin-buttons/admin-buttons.component';
 import { CommonModule } from '@angular/common';
-import { CarouselComponent } from './carousel.component';
+import { CarouselComponent } from './carousel/carousel.component';
 import { BusinessHoursComponent } from '../business-hours/business-hours.component';
 import { firstValueFrom } from 'rxjs';
 import { ServicesService } from '../../dashboard/admin/crud/services.service';
 import { BusinessHoursInterface } from '../../shared/interfaces/business-hours.interface';
 import { SharedService } from '../../shared/services/shared.service';
+import { BusinessInfoInterface } from '../../shared/interfaces/business-info.interface';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-business-card',
@@ -18,6 +19,44 @@ import { SharedService } from '../../shared/services/shared.service';
 })
 export default class BusinessCardComponent {
   constructor(private authService: AuthService, private businessHoursService: ServicesService, private sharedService: SharedService) { }
+
+  isEditInfo: boolean = false;
+  isLoadingCardInfo: boolean = false;
+  businessInfoFormData: BusinessInfoInterface = {
+    name: "",
+    description: "",
+    address: "",
+    phone: "",
+    email: "",
+    images: []
+  }
+
+  handleEditInfo() {
+    this.isEditInfo = !this.isEditInfo;
+  }
+
+  handleInputChange(field: string, event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    this.businessInfoFormData[field as "name" | "description" | "address" | "phone" | "email"] = value;
+  }
+
+  async handleSaveBusinessInfo() {
+    const formData = new FormData();
+
+    formData.append('name', this.businessInfoFormData.name);
+    formData.append('description', this.businessInfoFormData.description);
+    formData.append('address', this.businessInfoFormData.address);
+    formData.append('phone', this.businessInfoFormData.phone);
+    formData.append('email', this.businessInfoFormData.email);
+    try {
+      await firstValueFrom(this.businessHoursService.saveBusinessInfo(formData))
+      Swal.fire("Cambios realizados correctamente", "", "success")
+      this.isEditInfo = false
+    }
+    catch (error) {
+      console.log(error)
+    }
+  }
 
   formData: {
     [key: number]: {
@@ -40,22 +79,29 @@ export default class BusinessCardComponent {
   businessInfo: any = {
     name: 'Mi Negocio Ejemplo',
     description: 'Somos expertos en servicios de calidad, comprometidos con la satisfacción del cliente.',
-    address: 'Calle Falsa 123, Ciudad',
-    phone: '+34 600 123 456',
-    email: 'info@minegocio.com',
     hours: [] as BusinessHoursInterface[]
   };
 
-  ngOnInit() {
+  async ngOnInit() {
+    this.isLoadingCardInfo = true;
     this.sharedService.allBusinessHours$.subscribe((hours) => {
       this.businessInfo.hours = hours;
     });
 
     this.sharedService.loadAllBusinessHours();
+    try {
+      const response = await firstValueFrom(this.businessHoursService.getBusinessInfo());
+      this.businessInfoFormData = response[0];
+    } catch (error) {
+      console.log(error);
+    } finally {
+      this.isLoadingCardInfo = false;
+    }
   }
 
   getCurrentDay(): number {
-    return new Date().getDay();
+    const day = new Date().getDay();
+    return day === 0 ? 6 : day - 1;
   }
 
   getDayName(day: number): string {
@@ -72,13 +118,13 @@ export default class BusinessCardComponent {
   isAdmin() {
     return this.authService.isAdmin();
   }
+
   isOpenNow(): boolean {
     const now = new Date();
     const todayIndex = now.getDay();
     const todayHours = this.businessInfo.hours.find((h: any) => h.dayOfWeek === todayIndex);
 
     if (!todayHours || todayHours.isClosed) return false;
-
 
     for (const block of todayHours.timeBlocks) {
       const [openHour, openMinute] = block.openTime.split(':').map(Number);
@@ -97,5 +143,4 @@ export default class BusinessCardComponent {
 
     return false;
   }
-
 }

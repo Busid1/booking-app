@@ -1,14 +1,25 @@
 <div class="bg-white rounded-xl shadow-md max-w-screen-lg mx-auto w-full relative">
-<div class="absolute z-10 top-3 right-3 px-3 py-1 rounded-full text-sm font-medium text-white"
-     [ngClass]="isOpenNow() ? 'bg-green-800 text-green-200' : 'bg-red-800 text-red-200'">
-  {{ isOpenNow() ? 'Abierto' : 'Cerrado' }}
-</div>
+  <div class="absolute z-10 top-3 right-3 px-3 py-1 rounded-full text-sm font-medium text-white"
+    [ngClass]="isOpenNow() ? 'bg-green-600 text-green-200' : 'bg-red-800 text-red-200'">
+    {{ isOpenNow() ? 'Abierto' : 'Cerrado' }}
+  </div>
   <app-carousel></app-carousel>
-  <div class="text-center mb-6 mt-4 px-5">
-    <h1 class="text-3xl font-bold text-gray-800 mt-7 mb-4">{{ businessInfo.name }}</h1>
-    <p class="text-gray-600 leading-relaxed max-w-3xl mx-auto">
-      {{ businessInfo.description }}
-    </p>
+  <div class="flex flex-col gap-2 mb-6 mt-4 px-10">
+    <ng-container *ngIf="isEditInfo; else viewNameDescription">
+      <span class="font-medium">Nombre del negocio:</span>
+      <input type="text" [value]="businessInfoFormData.name" (input)="handleInputChange('name', $event)"
+        class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
+      <span class="font-medium">Descripción del negocio:</span>
+      <textarea type="text" [value]="businessInfoFormData.description"
+        (input)="handleInputChange('description', $event)"
+        class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5"></textarea>
+    </ng-container>
+    <ng-template #viewNameDescription>
+      <h1 class="text-3xl text-center font-bold text-gray-800 mt-7 mb-4">{{ businessInfoFormData.name }}</h1>
+      <p class="text-gray-600 leading-relaxed max-w-3xl mx-auto">
+        {{ businessInfoFormData.description }}
+      </p>
+    </ng-template>
   </div>
 
   <div class="grid md:grid-cols-2 gap-8 px-10 max-sm:px-5 py-2">
@@ -17,25 +28,63 @@
         <i class="fas fa-address-card"></i>
         Información de Contacto
       </h3>
-      <div class="space-y-3">
-        <div class="flex items-center gap-3">
-          <i class="fas fa-location-arrow"></i>
-          <span>{{ businessInfo.address }}</span>
-        </div>
+      <div class="flex flex-col gap-3">
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <ng-container *ngIf="isEditInfo; else viewAddress">
+              <i class="fas fa-location-arrow"></i>
+              <input type="text" [value]="businessInfoFormData.address" (input)="handleInputChange('address', $event)"
+                class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
+            </ng-container>
+            <ng-template #viewAddress>
+              <i class="fas fa-location-arrow"></i>
+              <span>{{ businessInfoFormData.address }}</span>
+            </ng-template>
+          </div>
 
-        <div class="flex items-center gap-3">
-          <i class="fas fa-phone"></i>
-          <a [href]="'tel:' + businessInfo.phone" class="hover:text-blue-600 transition-colors">
-            {{ businessInfo.phone }}
-          </a>
-        </div>
+          <div class="flex items-center gap-3">
+            <ng-container *ngIf="isEditInfo; else viewPhone">
+              <i class="fas fa-phone"></i>
+              <input type="text" [value]="businessInfoFormData.phone" (input)="handleInputChange('phone', $event)"
+                class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
+            </ng-container>
+            <ng-template #viewPhone>
+              <i class="fas fa-phone"></i>
+              <span>{{ businessInfoFormData.phone }}</span>
+            </ng-template>
+          </div>
 
-        <div class="flex items-center gap-3">
-          <i class="fas fa-envelope"></i>
-          <a [href]="'mailto:' + businessInfo.email" class="hover:text-blue-600 transition-colors">
-            {{ businessInfo.email }}
-          </a>
+          <div class="flex items-center gap-3">
+            <ng-container *ngIf="isEditInfo; else viewEmail">
+              <i class="fas fa-envelope"></i>
+              <input type="text" [value]="businessInfoFormData.email" (input)="handleInputChange('email', $event)"
+                class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
+            </ng-container>
+            <ng-template #viewEmail>
+              <i class="fas fa-envelope"></i>
+              <span>{{ businessInfoFormData.email }}</span>
+            </ng-template>
+          </div>
         </div>
+        <ng-container *ngIf="isAdmin()">
+          <ng-container *ngIf="!isEditInfo; else cancelButton">
+            <button type="button" *ngIf="isAdmin()" (click)="handleEditInfo()"
+              class="p-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 transition rounded-lg text-white flex items-center justify-center gap-2"><i
+                class="fas fa-pencil-alt text-white" aria-hidden="true"></i> Editar información </button>
+          </ng-container>
+          <ng-template #cancelButton>
+            <button type="button" (click)="handleEditInfo()"
+              class="inline-flex items-center justify-center gap-2 text-white bg-slate-600 hover:bg-slate-700 focus:ring-4 focus:ring-slate-300 font-medium rounded-lg text-sm px-4 py-2 transition">
+              <i class="fas fa-times"></i>
+              Cancelar
+            </button>
+            <button type="button" (click)="handleSaveBusinessInfo()"
+              class="inline-flex items-center justify-center gap-2 text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 transition">
+              <i class="fas fa-save"></i>
+              Guardar cambios
+            </button>
+          </ng-template>
+        </ng-container>
       </div>
     </div>
 
@@ -68,9 +117,13 @@
       </div>
     </div>
   </div>
-  @if(isAdmin()){
-  <div class="p-5">
+  <div *ngIf="isAdmin()" class="p-5">
     <app-business-hours></app-business-hours>
   </div>
-  }
 </div>
+
+@if(isLoadingCardInfo){
+<div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+  <div class="animate-spin rounded-full h-12 w-12 border-t-8 border-blue-500"></div>
+</div>
+}

@@ -14,10 +14,11 @@
       </div>
 
       <div class="space-y-4">
-        <app-datePicker *ngIf="currentStep === 1" [appointmentsAvailable]="appointmentsAvailable"
+        <div *ngIf="isLoadingHours" class="animate-spin rounded-full h-12 w-12 border-t-8 border-blue-500"></div>
+        <app-datePicker *ngIf="currentStep === 1 && !isLoadingHours" [appointmentsAvailable]="appointmentsAvailable"
           [dateAppointment]="appointmentData.date" [selectedServiceData]="selectedServiceData"
           [dateHourAppointment]="appointmentData.startTime" (dateSelected)="onDateSelected($event)"
-          (hourSelected)="onHourSelected($event)">
+          (hourSelected)="onHourSelected($event)" (isLoadingHours)="isLoadingHours">
         </app-datePicker>
 
         <div class="flex flex-col gap-2 text-gray-800" *ngIf="currentStep === 2">
@@ -27,7 +28,13 @@
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-2 justify-end pt-4 mt-4 border-t border-gray-200">
+      <div class="flex gap-2 justify-end pt-4 mt-4 border-t border-gray-200">
+        <div *ngIf="currentStep === 2" class="flex justify-end gap-2">
+          <button (click)="prevStep()" type="button"
+            class="text-gray-700 bg-gray-200 border border-gray-300 hover:bg-gray-400 font-medium rounded-lg text-sm px-5 py-2.5 transition">
+            Volver
+          </button>
+        </div>
         <form *ngIf="currentStep === 2" (submit)="handleReserveAppointment($event)" class="w-full">
           <button [disabled]="isLoading"
             class="w-full flex justify-center items-center gap-2 text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 transition"
@@ -49,13 +56,6 @@
           <button (click)="hideModal()" type="button"
             class="text-gray-700 bg-gray-200 border border-gray-300 hover:bg-red-600 hover:text-white font-medium rounded-lg text-sm px-5 py-2.5 transition">
             Cerrar
-          </button>
-        </div>
-
-        <div *ngIf="currentStep === 2" class="w-full flex justify-end gap-2">
-          <button (click)="prevStep()" type="button"
-            class="text-gray-700 bg-gray-200 border border-gray-300 hover:bg-gray-400 font-medium rounded-lg text-sm px-5 py-2.5 transition">
-            Volver
           </button>
         </div>
       </div>

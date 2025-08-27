@@ -73,15 +73,14 @@ export class CreateServiceComponent {
     }
 
     try {
-      const response = await firstValueFrom(this.servicesService.createService(formData));
-      // console.log(response);
-      
+      await firstValueFrom(this.servicesService.createService(formData));
+      await this.sharedService.loadAllServices();
+
       Swal.fire({
         title: 'Servicio creado correctamente',
         confirmButtonText: 'Ok',
         confirmButtonColor: '#22c55e',
       });
-      await this.sharedService.loadAllServices();
       this.onClose();
     } catch (error) {
       console.error('Error creando servicio:', error);

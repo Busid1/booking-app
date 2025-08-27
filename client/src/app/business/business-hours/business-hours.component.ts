@@ -19,6 +19,7 @@ export class BusinessHoursComponent implements OnInit {
   constructor(private businessHoursService: ServicesService, private sharedService: SharedService) { }
 
   editBusinessHours: boolean = false;
+  isSaving: boolean = false;
   handleEditBusinessHours() {
     this.editBusinessHours = !this.editBusinessHours
   }
@@ -57,6 +58,7 @@ export class BusinessHoursComponent implements OnInit {
 
   async handleSaveBusinessHours(event: Event) {
     event.preventDefault()
+    this.isSaving = true;
     const payload = this.prepareFormDataForSubmission(); 
     
     const hasEmptyBlock = Object.values(payload).some((day: any) =>
@@ -85,6 +87,7 @@ export class BusinessHoursComponent implements OnInit {
         this.editBusinessHours = false;
 
         await this.sharedService.loadAllBusinessHours()
+        this.isSaving = false;
       },
       error: (err) => console.error('Error al guardar horarios:', err)
     });

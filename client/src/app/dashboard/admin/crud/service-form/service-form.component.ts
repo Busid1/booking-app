@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ServiceInterface } from '../../../../shared/interfaces/service.interface';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-service-form',
@@ -28,13 +29,30 @@ export class ServiceFormComponent {
 
   handleInputChange(field: keyof ServiceInterface, event: Event) {
     const value = (event.target as HTMLInputElement).value;
-    (this.serviceFormData as any)[field] = value;
+
+    if (!this.serviceFormData) return;
+
+    if (field === 'price') {
+      const parsed = parseFloat(value);
+      this.serviceFormData.price = isNaN(parsed) ? 0 : parsed;
+    } else if (field === 'duration') {
+      const parsed = parseInt(value, 10);
+      this.serviceFormData.duration = isNaN(parsed) ? 0 : parsed;
+    } else {
+      this.serviceFormData[field] = value;
+    }
   }
 
   handleFileChange(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
-    if (file) this.serviceFormData.image = file ?? null;
+    if (!file?.type.startsWith('image/')) {
+      Swal.fire({ icon: 'error', text: 'Por favor selecciona solo imágenes.' });
+      return;
+    }
+
+    this.serviceFormData.image = file;
   }
+
 
   onSubmit(event: Event) {
     event.preventDefault();

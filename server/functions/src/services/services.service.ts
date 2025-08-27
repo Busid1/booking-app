@@ -12,10 +12,10 @@ export class ServicesService {
             const service = await this.prismaService.service.create({
                 data: {
                     title,
-                    price,
+                    price: parseFloat(price as any),
                     description,
                     image,
-                    duration,
+                    duration: parseInt(duration as any),
                 },
             });
             return service;
@@ -46,14 +46,15 @@ export class ServicesService {
                 where: { id },
                 data: {
                     title,
-                    price,
+                    price: parseFloat(price as any),
                     description,
                     image,
-                    duration,
+                    duration: parseInt(duration as any),
                 },
             });
             return service;
         } catch (error) {
+            console.log(error);
             throw new BadRequestException('Error updating service');
         }
     }

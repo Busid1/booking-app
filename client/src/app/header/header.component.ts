@@ -25,6 +25,7 @@ export default class HeaderComponent {
     this.isLoading = true;
     setTimeout(()=>{
       this.isLoading = false;
+      window.location.reload();
     }, 1000)
     return this.authService.logout();
   }

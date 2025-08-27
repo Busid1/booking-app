@@ -13,10 +13,10 @@ export class DatePickerComponent {
   @Input() dateAppointment: string | null = null;
   @Input() selectedServiceData!: ServiceInterface;
   @Input() dateHourAppointment: string | null = null;
+  @Input() isLoadingHours: boolean = false;
 
   @Output() dateSelected = new EventEmitter<string>();
   @Output() hourSelected = new EventEmitter<string>();
-  @Output() isLoadingHours = new EventEmitter<boolean>();
 
   getTodayDate(): string {
     const today = new Date();
@@ -31,7 +31,6 @@ export class DatePickerComponent {
   handleDateChange(event: Event) {
     const input = event.target as HTMLInputElement;
     this.dateSelected.emit(input.value);
-    this.isLoadingHours.emit(true)
   }
 
   handleSelectedHourDate(hour: string) {
@@ -45,7 +44,6 @@ export class DatePickerComponent {
     const startMinutes = Number(start.split(':')[0]) * 60 + Number(start.split(':')[1]);
     const endMinutes = startMinutes + this.selectedServiceData.duration;
     const end = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
-
     return `${start} - ${end}`;
   }
 }

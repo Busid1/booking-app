@@ -28,3 +28,16 @@ export const uploadToCloudinary = (buffer: Buffer | undefined, folder = 'service
     readable.pipe(stream);
   });
 };
+
+export async function deleteFromCloudinary(url: string) {
+  try {
+    const segments = url.split('/');
+    const filename = segments[segments.length - 1];
+    const public_id = filename.split('.')[0];
+
+    await cloudinary.uploader.destroy(`businessImages/${public_id}`);
+  } catch (err) {
+    console.error('Error al borrar imagen de Cloudinary:', err);
+    throw err;
+  }
+}

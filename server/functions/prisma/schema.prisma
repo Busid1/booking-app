@@ -37,6 +37,16 @@ model BusinessHours {
   updatedAt  DateTime    @updatedAt
 }
 
+model BusinessInfo {
+  id          Int    @id @default(1)
+  name        String @default("Default Name")
+  description String @default("Default Description")
+  address     String
+  phone       String
+  email       String
+  images      String[]
+}
+
 model TimeBlock {
   id              String        @id @default(uuid())
   openTime        String
