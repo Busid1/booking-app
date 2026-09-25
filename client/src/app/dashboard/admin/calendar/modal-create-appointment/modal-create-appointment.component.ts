@@ -1,129 +1,113 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Input, OnChanges, Output, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { CurrencyPipe } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import { AppointmentService } from '../../../../booking/appointment.service';
-import { CommonModule } from '@angular/common';
-import { ServicesService } from '../../crud/services.service';
-import Swal from 'sweetalert2';
 import { SharedService } from '../../../../shared/services/shared.service';
-import { FormsModule } from '@angular/forms';
+import { ModalComponent } from '../../../../shared/services/modal.component';
+import { AppointmentInterface } from '../../../../shared/interfaces/appointment.interface';
+import { addMinutes, isPast, mondayBasedDay, todayKey, toMinutes } from '../../../../shared/services/time.utils';
+import { alerts } from '../../../../shared/services/alerts';
 
+interface AppointmentForm {
+  serviceId: string;
+  date: string;
+  startTime: string;
+  clientName: string;
+}
+
+/** Formulario (modal) para crear o editar citas desde el panel de administración. */
 @Component({
   selector: 'app-modal-create-appointment',
   templateUrl: './modal-create-appointment.component.html',
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule, CurrencyPipe, ModalComponent],
   standalone: true,
 })
+export class ModalCreateAppointmentComponent implements OnChanges {
+  private appointmentsService = inject(AppointmentService);
+  readonly store = inject(SharedService);
 
-export class ModalCreateAppointmentComponent {
-  constructor(private appointmentsService: AppointmentService, private servicesService: ServicesService, private sharedService: SharedService) { }
+  @Input() open = false;
+  /** Fecha preseleccionada (al crear desde el calendario). */
+  @Input() date = '';
+  @Input() time = '';
+  /** Si se pasa una cita, el formulario funciona en modo edición. */
+  @Input() appointment: AppointmentInterface | null = null;
   @Output() closeModal = new EventEmitter<void>();
-  @Input() date: string = '';
-  services: any = [];
 
-  appointmentData: any = {
-    service: '',
-    serviceId: '',
-    date: '',
-    startTime: '',
-    endTime: '',
-    clientName: ''
-  };
+  readonly isSaving = signal(false);
+  readonly form = signal<AppointmentForm>({ serviceId: '', date: '', startTime: '', clientName: '' });
+  readonly minDate = todayKey();
 
-  selectedService: any = null;
+  readonly selectedService = computed(() => this.store.services().find(s => s.id === this.form().serviceId) ?? null);
+  readonly endTime = computed(() => {
+    const service = this.selectedService();
+    const start = this.form().startTime;
+    return service && start ? addMinutes(start, service.duration) : '';
+  });
 
-  onServiceChange() {
-    this.selectedService = this.services.find(
-      (s: any) => s.id === this.appointmentData.service
-    );
-    this.appointmentData.serviceId = this.selectedService.id
-    this.updateEndTime();
+  /** Aviso (no bloqueante) si la cita queda fuera del horario del negocio. */
+  readonly outsideHours = computed(() => {
+    const { date, startTime } = this.form();
+    const end = this.endTime();
+    if (!date || !startTime || !end) return false;
+    const day = this.store.weekSchedule()[mondayBasedDay(date)];
+    return day.isClosed || !day.timeBlocks.some(b => b.openTime <= startTime && end <= b.closeTime);
+  });
+
+  get isEdit(): boolean {
+    return !!this.appointment;
   }
 
-  onStartTimeChange() {
-    this.updateEndTime();
+  ngOnChanges() {
+    if (!this.open) return;
+    if (!this.store.servicesLoaded()) this.store.loadAllServices().catch(() => undefined);
+
+    const a = this.appointment;
+    this.form.set(a
+      ? { serviceId: a.serviceId, date: a.date, startTime: a.startTime, clientName: a.clientName || a.user?.name || '' }
+      : { serviceId: '', date: this.date || todayKey(), startTime: this.time, clientName: '' });
   }
 
-  updateEndTime() {
-    if (!this.appointmentData.startTime || !this.selectedService?.duration) {
+  patch(changes: Partial<AppointmentForm>) {
+    this.form.update(f => ({ ...f, ...changes }));
+  }
+
+  private validate(): string | null {
+    const f = this.form();
+    if (!f.serviceId) return 'Selecciona un servicio';
+    if (!f.date) return 'Selecciona una fecha';
+    if (!f.startTime) return 'Indica la hora de inicio';
+    if (!f.clientName.trim()) return 'Indica el nombre del cliente';
+    if (toMinutes(this.endTime()) <= toMinutes(f.startTime)) return 'La cita no puede terminar después de medianoche';
+    if (!this.isEdit && isPast(f.date, f.startTime)) return 'No se pueden crear citas en el pasado';
+    return null;
+  }
+
+  async handleSubmit() {
+    const error = this.validate();
+    if (error) {
+      alerts.warning(error);
       return;
     }
 
-    const [hours, minutes] = this.appointmentData.startTime.split(':').map(Number);
-    const startDate = new Date();
-    startDate.setHours(hours, minutes);
-
-    const endDate = new Date(startDate.getTime() + this.selectedService.duration * 60000);
-
-    const endHours = String(endDate.getHours()).padStart(2, '0');
-    const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
-
-    this.appointmentData.endTime = `${endHours}:${endMinutes}`;
-  }
-
-  handleInputChange(field: keyof typeof this.appointmentData, event: Event) {
-    const value = (event.target as HTMLInputElement).value;
-    this.appointmentData[field] = value;
-  }
-
-  onClose() {
-    this.closeModal.emit()
-  }
-
-  async handleSubmit(event: Event) {
-    event.preventDefault();
-    const token = localStorage.getItem("authToken") || "";
-    if (!this.appointmentData.service) {
-      Swal.fire({
-        title: "Por favor, selecciona un servicio",
-        icon: "error",
-      })
-      return
-    }
-
-    if (!this.appointmentData.startTime || !this.appointmentData.endTime) {
-      Swal.fire({
-        title: "Debe de asignar una hora de inicio y fin",
-        icon: "error",
-      })
-      return
-    }
-
-    if (this.appointmentData.endTime < this.appointmentData.startTime) {
-      Swal.fire({
-        title: "La hora de fin es menor al de inicio",
-        icon: "error",
-      });
-      return;
-    }
-
-    if (!this.appointmentData.clientName) {
-      Swal.fire({
-        title: "Debe de asignar un nombre al cliente",
-        icon: "error",
-      })
-      return
-    }
-
+    const f = this.form();
+    const payload = { ...f, clientName: f.clientName.trim(), endTime: this.endTime() };
+    this.isSaving.set(true);
     try {
-      await firstValueFrom(this.appointmentsService.createAppointment(this.appointmentData, token))
-      Swal.fire({
-        title: 'Cita reservada correctamente',
-        icon: 'success',
-        confirmButtonText: 'Ok',
-        confirmButtonColor: '#22c55e',
-      });
-      this.sharedService.loadAllAppointments();
-      this.onClose();
-    } catch (error) {
-      console.log(error)
+      if (this.appointment?.id) {
+        await firstValueFrom(this.appointmentsService.updateAppointment(this.appointment.id, payload));
+        alerts.success('Cita actualizada');
+      } else {
+        await firstValueFrom(this.appointmentsService.createAppointment(payload));
+        alerts.success('Cita creada');
+      }
+      await this.store.loadAllAppointments();
+      this.closeModal.emit();
+    } catch (err) {
+      alerts.error(err, 'No se ha podido guardar la cita');
+    } finally {
+      this.isSaving.set(false);
     }
   }
-
-  async ngOnChanges() {
-    this.services = await firstValueFrom(this.servicesService.getServices());
-    if (this.date) {
-      this.appointmentData.date = this.date;
-    }
-  }
-
 }

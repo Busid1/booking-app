@@ -1,18 +1,28 @@
-<footer class="max-w-screen-lg mx-auto px-10 max-sm:px-5 pb-6 mt-10">
-  <div class="bg-white rounded-xl py-3 px-5 shadow-md text-center gap-5 max-sm:gap-2 flex items-center justify-between flex-wrap">
-    <span class="text-md font-semibold text-gray-800">© 2025 Bookly. Creado por Busid</span>
-    <ul class="flex flex-wrap gap-x-4 items-center text-sm font-medium text-gray-800 sm:mt-0">
+<footer class="border-t border-slate-200/70 bg-white/60 backdrop-blur">
+  <div class="container-page flex flex-col items-center justify-between gap-4 py-8 sm:flex-row">
+    <div class="flex flex-col items-center gap-1 sm:items-start">
+      <a routerLink="/" class="flex items-center gap-2 font-extrabold text-slate-900">
+        <span class="grid size-7 place-items-center rounded-lg bg-brand-600 text-xs text-white"><i class="fas fa-calendar-check"></i></span>
+        Book<span class="-ml-2 text-brand-600">ly</span>
+      </a>
+      <p class="text-sm text-slate-500">© {{ year }} Bookly · Creado por Busid</p>
+    </div>
+
+    <ul class="flex items-center gap-1">
       <li>
-        <a href="https://github.com/Busid1" target="_blank" class="hover:underline"><i
-            class="fab fa-github text-lg"></i></a>
+        <a href="https://github.com/Busid1" target="_blank" rel="noopener" class="btn-icon" aria-label="GitHub">
+          <i class="fab fa-github text-lg"></i>
+        </a>
       </li>
       <li>
-        <a href="https://www.linkedin.com/in/busid/" target="_blank" class="hover:underline"><i
-            class="fab fa-linkedin text-lg"></i></a>
+        <a href="https://www.linkedin.com/in/busid/" target="_blank" rel="noopener" class="btn-icon" aria-label="LinkedIn">
+          <i class="fab fa-linkedin text-lg"></i>
+        </a>
       </li>
       <li>
-        <a href="https://busid.netlify.app/" target="_blank" class="hover:underline"><i
-            class="fas fa-globe text-lg"></i></a>
+        <a href="https://busid.netlify.app/" target="_blank" rel="noopener" class="btn-icon" aria-label="Portfolio">
+          <i class="fas fa-globe text-lg"></i>
+        </a>
       </li>
     </ul>
   </div>

@@ -1,58 +1,52 @@
-<div class="flex justify-center mt-32 max-w-screen-lg mx-auto px-10 max-sm:px-5">
-  <div class="bg-white rounded-xl p-1 max-sm:justify-center shadow-sm border border-gray-200 flex flex-wrap">
-    <button (click)="setActiveTab('info')"
-      class="flex items-center justify-center flex-1 gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200" [ngClass]="{
-        'bg-blue-600 text-white shadow-sm': activeTab === 'info',
-        'text-gray-600 hover:text-blue-600 hover:bg-blue-50': activeTab !== 'info'
-      }">
-      <i class="fas fa-info"></i> Información
-    </button>
+<div class="container-page">
+  <app-business />
 
-    <button (click)="setActiveTab('services')"
-      class="flex items-center justify-center flex-1 text-nowrap gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200" [ngClass]="{
-        'bg-blue-600 text-white shadow-sm': activeTab === 'services',
-        'text-gray-600 hover:text-blue-600 hover:bg-blue-50': activeTab !== 'services'
-      }">
-      @if(isAdmin()){
-      <i class="fas fa-pencil-alt"></i> Editar/Crear servicio
-      } @else {
-      <i class="fas fa-star"></i> Servicios + Pedir cita
-      }
-    </button>
-    @if(isAdmin()){
-    <button (click)="setActiveTab('calendar')"
-      class="flex items-center justify-center flex-1 gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200" [ngClass]="{
-        'bg-blue-600 text-white shadow-sm': activeTab === 'calendar',
-        'text-gray-600 hover:text-blue-600 hover:bg-blue-50': activeTab !== 'calendar'
-      }">
-      <i class="fas fa-calendar-check"></i> Calendario
-    </button>
-    } @else {
-    <button (click)="setActiveTab('view')"
-      class="flex items-center justify-center flex-1 gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200" [ngClass]="{
-              'bg-blue-600 text-white shadow-sm': activeTab === 'view',
-              'text-gray-600 hover:text-blue-600 hover:bg-blue-50': activeTab !== 'view'
-            }">
-      <i class="fas fa-search"></i> Mis Citas
-    </button>
-    }
-  </div>
-</div>
+  @if (featured().length) {
+    <section class="mt-14">
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p class="eyebrow">Servicios</p>
+          <h2 class="mt-1 text-2xl font-extrabold sm:text-3xl">Lo que podemos hacer por ti</h2>
+        </div>
+        <a routerLink="/servicios" class="btn btn-ghost">Ver todos <i class="fas fa-arrow-right text-xs"></i></a>
+      </div>
 
-<div class="px-10 max-sm:px-5 mt-10 max-w-screen-lg mx-auto">
-  <div *ngIf="activeTab === 'info'">
-    <app-business></app-business>
-  </div>
+      <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        @for (service of featured(); track service.id; let i = $index) {
+          <a routerLink="/servicios" [queryParams]="auth.isAdmin() ? {} : { reservar: service.id }"
+            class="card group flex animate-slide-up flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-lift"
+            [style.animation-delay.ms]="i * 70">
+            <div class="relative h-40 overflow-hidden bg-gradient-to-br from-brand-100 to-accent-100">
+              @if (service.image) {
+                <img [src]="service.image" [alt]="service.title" loading="lazy" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+              } @else {
+                <div class="grid h-full place-items-center text-4xl text-brand-300"><i class="fas fa-spa"></i></div>
+              }
+            </div>
+            <div class="flex flex-1 flex-col p-5">
+              <h3 class="font-bold text-slate-900 group-hover:text-brand-700">{{ service.title }}</h3>
+              <div class="mt-auto flex items-center justify-between pt-4 text-sm">
+                <span class="flex items-center gap-1.5 text-slate-500"><i class="far fa-clock"></i> {{ formatDuration(service.duration) }}</span>
+                <span class="text-base font-extrabold text-slate-900">{{ service.price | currency: 'EUR' }}</span>
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+    </section>
+  }
 
-  <div *ngIf="activeTab === 'services'">
-    <app-services></app-services>
-  </div>
-
-  <div *ngIf="activeTab === 'calendar'">
-    <app-reviewAppointments></app-reviewAppointments>
-  </div>
-
-  <div *ngIf="activeTab === 'view'">
-    <app-appointments></app-appointments>
-  </div>
+  @if (!auth.isAdmin()) {
+    <section class="mt-14 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 to-indigo-800 p-8 text-white shadow-lift sm:p-12">
+      <div class="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+        <div>
+          <h2 class="text-2xl font-extrabold text-white sm:text-3xl">¿Listo para tu próxima cita?</h2>
+          <p class="mt-2 max-w-xl text-brand-100">Elige servicio, día y hora. Recibirás la confirmación al instante.</p>
+        </div>
+        <a routerLink="/servicios" class="btn btn-lg bg-white text-brand-700 shadow-lg hover:bg-brand-50">
+          <i class="fas fa-calendar-plus"></i> Reservar ahora
+        </a>
+      </div>
+    </section>
+  }
 </div>

@@ -1,62 +1,58 @@
-<div id="createAppointmentModal" tabindex="-1" aria-hidden="true"
-  class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 w-full h-full bg-black/50">
-  <div class="relative p-4 w-full max-w-lg">
-    <div class="relative p-6 bg-white rounded-lg shadow-md">
-
-      <div class="flex items-center justify-between pb-4 mb-4 border-b border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-800">
-          Crear cita
-        </h3>
-        <button type="button" (click)="onClose()"
-          class="text-gray-400 hover:text-white hover:bg-red-600 rounded-lg text-sm w-8 h-8 flex items-center justify-center transition">
-          <i class="fas fa-times"></i>
-          <span class="sr-only">Cerrar modal</span>
-        </button>
-      </div>
-
-      <form (submit)="handleSubmit($event)" class="space-y-4">
-        <div>
-          <label class="block mb-1 text-sm font-medium text-gray-700">Servicio</label>
-          <select [(ngModel)]="appointmentData.service" name="service" (change)="onServiceChange()"
-            class="bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5">
-            <option value="" disabled selected>Selecciona un servicio</option>
-            <option *ngFor="let service of services" [value]="service.id">
-              {{ service.title }} ({{ service.duration }} min)
-            </option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block mb-1 text-sm font-medium text-gray-700">Fecha</label>
-          <input type="date" [value]="appointmentData.date" disabled
-            class="bg-gray-100 border cursor-not-allowed border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
-        </div>
-
-        <div class="flex gap-2">
-          <div class="flex-1">
-            <label class="block mb-1 text-sm font-medium text-gray-700">Hora inicio</label>
-            <input type="time" [(ngModel)]="appointmentData.startTime" name="startTime" (change)="onStartTimeChange()"
-              required class="bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
-          </div>
-          <div class="flex-1">
-            <label class="block mb-1 text-sm font-medium text-gray-700">Hora fin</label>
-            <input type="time" [(ngModel)]="appointmentData.endTime" name="endTime" required disabled
-              class="bg-gray-100 border cursor-not-allowed border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" readonly />
-          </div>
-        </div>
-
-        <div>
-          <label class="block mb-1 text-sm font-medium text-gray-700">Cliente</label>
-          <input (input)="handleInputChange('clientName', $event)" type="text" name="clientName" required
-            placeholder="Nombre del cliente" [value]="appointmentData.clientName"
-            class="bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" />
-        </div>
-
-        <button type="submit"
-          class="w-full flex justify-center items-center gap-2 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 transition">
-          <i class="fas fa-calendar-plus"></i> Crear cita
-        </button>
-      </form>
+<app-modal [open]="open" (closed)="closeModal.emit()" [title]="isEdit ? 'Editar cita' : 'Nueva cita'"
+  [subtitle]="isEdit ? 'Modifica los datos de la cita' : 'Registra una cita para un cliente'">
+  <form id="appointmentForm" (ngSubmit)="handleSubmit()" class="grid gap-5">
+    <div>
+      <label class="label" for="ap-service">Servicio</label>
+      <select id="ap-service" name="serviceId" class="input" [ngModel]="form().serviceId" (ngModelChange)="patch({ serviceId: $event })" required>
+        <option value="" disabled>Selecciona un servicio</option>
+        @for (service of store.services(); track service.id) {
+          <option [value]="service.id">{{ service.title }} · {{ service.duration }} min · {{ service.price | currency: 'EUR' }}</option>
+        }
+      </select>
     </div>
+
+    <div>
+      <label class="label" for="ap-client">Cliente</label>
+      <div class="relative">
+        <i class="fas fa-user pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+        <input id="ap-client" name="clientName" class="input pl-10" placeholder="Nombre del cliente" maxlength="80"
+          [ngModel]="form().clientName" (ngModelChange)="patch({ clientName: $event })" required />
+      </div>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div>
+        <label class="label" for="ap-date">Fecha</label>
+        <input id="ap-date" name="date" type="date" class="input" [min]="isEdit ? '' : minDate"
+          [ngModel]="form().date" (ngModelChange)="patch({ date: $event })" required />
+      </div>
+      <div>
+        <label class="label" for="ap-start">Inicio</label>
+        <input id="ap-start" name="startTime" type="time" step="300" class="input"
+          [ngModel]="form().startTime" (ngModelChange)="patch({ startTime: $event })" required />
+      </div>
+      <div>
+        <label class="label" for="ap-end">Fin</label>
+        <input id="ap-end" type="time" class="input" [value]="endTime()" disabled />
+      </div>
+    </div>
+
+    @if (outsideHours()) {
+      <div class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-800">
+        <i class="fas fa-triangle-exclamation mt-0.5"></i>
+        <span>La cita queda fuera del horario de atención. Como administrador puedes guardarla igualmente.</span>
+      </div>
+    }
+  </form>
+
+  <div modal-footer class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4 sm:px-6">
+    <button type="button" class="btn btn-secondary" (click)="closeModal.emit()">Cancelar</button>
+    <button type="submit" form="appointmentForm" class="btn btn-primary" [disabled]="isSaving()">
+      @if (isSaving()) {
+        <span class="spinner size-4"></span> Guardando…
+      } @else {
+        <i class="fas" [class.fa-floppy-disk]="isEdit" [class.fa-calendar-plus]="!isEdit"></i> {{ isEdit ? 'Guardar cambios' : 'Crear cita' }}
+      }
+    </button>
   </div>
-</div>
+</app-modal>

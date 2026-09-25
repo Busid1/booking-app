@@ -1,84 +1,122 @@
-<div class="bg-white rounded-xl shadow-lg p-8 max-sm:px-5">
-  <div class="text-center mb-8">
-    <h2 class="text-3xl font-bold text-gray-800 mb-4">Nuestros Servicios</h2>
-    <p class="text-gray-600 max-w-2xl mx-auto">
-      Descubre nuestra amplia gama de servicios profesionales diseñados para cuidar tu bienestar y belleza
-    </p>
-  </div>
+<div class="container-page">
+  <header class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+    <div class="animate-slide-up">
+      <p class="eyebrow">{{ auth.isAdmin() ? 'Gestión' : 'Reserva online' }}</p>
+      <h1 class="mt-1 text-3xl font-extrabold sm:text-4xl">Nuestros servicios</h1>
+      <p class="mt-2 max-w-xl text-slate-500">
+        @if (auth.isAdmin()) {
+          Crea, edita o elimina los servicios que tus clientes pueden reservar.
+        } @else {
+          Elige el servicio que necesitas y reserva tu cita en menos de un minuto.
+        }
+      </p>
+    </div>
 
-  @if(!isLoadingServices){
-  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-    @for(service of allServices; track service.id){
-    <div
-      class="group relative bg-white rounded-xl border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer border-gray-200 hover:border-blue-300">
-
-      <div class="relative overflow-hidden rounded-t-xl">
-        <img class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-          src="{{service.image ? service.image : 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg'}}"
-          alt="{{service.title}}">
-      </div>
-
-      <div class="p-6">
-        <div class="flex items-start justify-between mb-3">
-          <h3 class="text-xl font-semibold text-gray-800 group-hover:text-blue-600 transition-colors truncate">
-            {{service.title}}
-          </h3>
+    @if (store.services().length > 3) {
+      <div class="flex gap-2">
+        <div class="relative flex-1 md:w-64">
+          <i class="fas fa-magnifying-glass pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+          <input type="search" class="input pl-10" placeholder="Buscar servicio…" aria-label="Buscar servicio"
+            [ngModel]="search()" (ngModelChange)="search.set($event)" />
         </div>
+        <select class="input w-auto pr-9" aria-label="Ordenar servicios" [ngModel]="sort()" (ngModelChange)="sort.set($event)">
+          <option value="default">Destacados</option>
+          <option value="price-asc">Precio: menor a mayor</option>
+          <option value="price-desc">Precio: mayor a menor</option>
+          <option value="duration">Duración</option>
+        </select>
+      </div>
+    }
+  </header>
 
-        <p class="text-gray-600 text-sm mb-4 line-clamp-2">
-          {{service.description}}
-        </p>
-
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4 text-sm text-gray-500">
-            <div class="flex items-center gap-1">
-              <i class="fas fa-clock w-4 h-4"></i>
-              <span>{{service.duration}} min</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <span class="font-semibold text-gray-800">{{service.price | currency:'EUR'}}</span>
+  <section class="mt-8">
+    @if (isLoading()) {
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        @for (i of [1, 2, 3]; track i) {
+          <div class="card overflow-hidden">
+            <div class="skeleton h-48 rounded-none"></div>
+            <div class="space-y-3 p-5">
+              <div class="skeleton h-5 w-2/3"></div>
+              <div class="skeleton h-4 w-full"></div>
+              <div class="skeleton h-10 w-full"></div>
             </div>
           </div>
-        </div>
-
-        <div class="flex justify-end gap-6 mt-6">
-          @if(isAdmin()){
-          <button data-modal-target="updateServiceModal" data-modal-toggle="updateServiceModal"
-            (click)="handleActiveModal(service.id ?? '')" type="button">
-            <i class="fas fa-pencil-alt text-blue-600 text-lg"></i>
-          </button>
-
-          <button type="button" (click)="handleDeleteService(service.id ?? '')">
-            <i class="fas fa-trash-alt text-red-600 text-lg"></i>
-          </button>
-          } @else {
-          <button type="button" (click)="handleActiveModal(service.id ?? '')"
-            class="bg-blue-600 text-sm flex items-center gap-2 justify-center font-medium w-full whitespace-nowrap shadow hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
-            <i class="fas fa-calendar-plus"></i> Pedir cita
-          </button>
-          }
-        </div>
+        }
       </div>
-    </div>
-    }
-    @if(isAdmin()){
-    <app-admin-buttons></app-admin-buttons>
-    }
-  </div>
+    } @else if (loadError()) {
+      <div class="card flex flex-col items-center gap-3 p-10 text-center">
+        <span class="grid size-14 place-items-center rounded-full bg-rose-50 text-xl text-rose-500"><i class="fas fa-plug-circle-xmark"></i></span>
+        <h2 class="text-lg font-bold">No hemos podido cargar los servicios</h2>
+        <button type="button" class="btn btn-secondary" (click)="load()"><i class="fas fa-rotate-right"></i> Reintentar</button>
+      </div>
+    } @else {
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        @for (service of filteredServices(); track service.id; let i = $index) {
+          <article class="card group flex animate-slide-up flex-col overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-lift"
+            [style.animation-delay.ms]="i * 50">
+            <div class="relative h-48 overflow-hidden bg-gradient-to-br from-brand-100 to-accent-100">
+              @if (service.image) {
+                <img [src]="service.image" [alt]="service.title" loading="lazy"
+                  class="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+              } @else {
+                <div class="grid h-full place-items-center text-5xl text-brand-300"><i class="fas fa-spa"></i></div>
+              }
+              <span class="badge absolute left-3 top-3 bg-white/90 text-slate-700 shadow-sm backdrop-blur">
+                <i class="far fa-clock text-brand-500"></i> {{ formatDuration(service.duration) }}
+              </span>
 
-  @if(isLoadingServices){
-  <span>No hay servicios</span>
-  }
-  } @else {
-  <div class="animate-spin rounded-full h-10 w-10 border-t-8 border-blue-500 mx-auto"></div>
-  }
+              @if (auth.isAdmin()) {
+                <div class="absolute right-3 top-3 flex gap-1.5">
+                  <button type="button" (click)="editingService.set(service)" aria-label="Editar servicio"
+                    class="grid size-9 place-items-center rounded-full bg-white/95 text-slate-700 shadow-sm transition hover:bg-brand-600 hover:text-white">
+                    <i class="fas fa-pen text-xs"></i>
+                  </button>
+                  <button type="button" (click)="handleDeleteService(service)" [disabled]="deletingId() === service.id" aria-label="Eliminar servicio"
+                    class="grid size-9 place-items-center rounded-full bg-white/95 text-rose-600 shadow-sm transition hover:bg-rose-600 hover:text-white">
+                    @if (deletingId() === service.id) { <span class="spinner size-3.5"></span> } @else { <i class="fas fa-trash-can text-xs"></i> }
+                  </button>
+                </div>
+              }
+            </div>
+
+            <div class="flex flex-1 flex-col p-5">
+              <div class="flex items-start justify-between gap-3">
+                <h2 class="text-lg font-bold leading-snug">{{ service.title }}</h2>
+                <span class="shrink-0 text-lg font-extrabold text-brand-700">{{ service.price | currency: 'EUR' }}</span>
+              </div>
+              @if (service.description) {
+                <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-500">{{ service.description }}</p>
+              }
+
+              @if (!auth.isAdmin()) {
+                <div class="mt-auto pt-5">
+                  <button type="button" class="btn btn-primary w-full" (click)="book(service)">
+                    <i class="fas fa-calendar-plus"></i> Reservar cita
+                  </button>
+                </div>
+              }
+            </div>
+          </article>
+        } @empty {
+          @if (!auth.isAdmin()) {
+            <div class="card col-span-full flex flex-col items-center gap-3 p-12 text-center">
+              <span class="grid size-14 place-items-center rounded-full bg-slate-100 text-xl text-slate-400"><i class="fas fa-magnifying-glass"></i></span>
+              <h2 class="text-lg font-bold">{{ search() ? 'Sin resultados' : 'Aún no hay servicios' }}</h2>
+              <p class="text-sm text-slate-500">{{ search() ? 'Prueba con otra búsqueda.' : 'Vuelve pronto para ver nuestras novedades.' }}</p>
+            </div>
+          }
+        }
+
+        @if (auth.isAdmin()) {
+          <app-admin-buttons />
+        }
+      </div>
+    }
+  </section>
 </div>
 
-@if(isLoadingModal){
-<div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-  <div class="animate-spin rounded-full h-12 w-12 border-t-8 border-blue-500"></div>
-</div>
+@if (auth.isAdmin()) {
+  <app-update-service [open]="!!editingService()" [service]="editingService()" (closeModal)="editingService.set(null)" />
+} @else {
+  <app-booking [open]="!!bookingService()" [service]="bookingService()" (closed)="bookingService.set(null)" />
 }
-
-<app-update-service [serviceFormData]="serviceFormData!" (closeModal)="handleCloseModal()"></app-update-service>
-<app-booking></app-booking>

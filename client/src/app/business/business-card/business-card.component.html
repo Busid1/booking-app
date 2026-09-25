@@ -1,129 +1,124 @@
-<div class="bg-white rounded-xl shadow-md max-w-screen-lg mx-auto w-full relative">
-  <div class="absolute z-10 top-3 right-3 px-3 py-1 rounded-full text-sm font-medium text-white"
-    [ngClass]="isOpenNow() ? 'bg-green-600 text-green-200' : 'bg-red-800 text-red-200'">
-    {{ isOpenNow() ? 'Abierto' : 'Cerrado' }}
-  </div>
-  <app-carousel></app-carousel>
-  <div class="flex flex-col gap-2 mb-6 mt-4 px-10">
-    <ng-container *ngIf="isEditInfo; else viewNameDescription">
-      <span class="font-medium">Nombre del negocio:</span>
-      <input type="text" [value]="businessInfoFormData.name" (input)="handleInputChange('name', $event)"
-        class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
-      <span class="font-medium">Descripción del negocio:</span>
-      <textarea type="text" [value]="businessInfoFormData.description"
-        (input)="handleInputChange('description', $event)"
-        class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5"></textarea>
-    </ng-container>
-    <ng-template #viewNameDescription>
-      <h1 class="text-3xl text-center font-bold text-gray-800 mt-7 mb-4">{{ businessInfoFormData.name }}</h1>
-      <p class="text-gray-600 leading-relaxed max-w-3xl mx-auto">
-        {{ businessInfoFormData.description }}
-      </p>
-    </ng-template>
-  </div>
-
-  <div class="grid md:grid-cols-2 gap-8 px-10 max-sm:px-5 py-2">
-    <div class="text-gray-700 px-3">
-      <h3 class="text-lg text-nowrap font-semibold flex items-center gap-2 text-gray-800 mb-4">
-        <i class="fas fa-address-card"></i>
-        Información de Contacto
-      </h3>
-      <div class="flex flex-col gap-3">
-        <div class="space-y-3">
-          <div class="flex items-center gap-3">
-            <ng-container *ngIf="isEditInfo; else viewAddress">
-              <i class="fas fa-location-arrow"></i>
-              <input type="text" [value]="businessInfoFormData.address" (input)="handleInputChange('address', $event)"
-                class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
-            </ng-container>
-            <ng-template #viewAddress>
-              <i class="fas fa-location-arrow"></i>
-              <span>{{ businessInfoFormData.address }}</span>
-            </ng-template>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <ng-container *ngIf="isEditInfo; else viewPhone">
-              <i class="fas fa-phone"></i>
-              <input type="text" [value]="businessInfoFormData.phone" (input)="handleInputChange('phone', $event)"
-                class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
-            </ng-container>
-            <ng-template #viewPhone>
-              <i class="fas fa-phone"></i>
-              <span>{{ businessInfoFormData.phone }}</span>
-            </ng-template>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <ng-container *ngIf="isEditInfo; else viewEmail">
-              <i class="fas fa-envelope"></i>
-              <input type="text" [value]="businessInfoFormData.email" (input)="handleInputChange('email', $event)"
-                class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
-            </ng-container>
-            <ng-template #viewEmail>
-              <i class="fas fa-envelope"></i>
-              <span>{{ businessInfoFormData.email }}</span>
-            </ng-template>
-          </div>
-        </div>
-        <ng-container *ngIf="isAdmin()">
-          <ng-container *ngIf="!isEditInfo; else cancelButton">
-            <button type="button" *ngIf="isAdmin()" (click)="handleEditInfo()"
-              class="p-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 transition rounded-lg text-white flex items-center justify-center gap-2"><i
-                class="fas fa-pencil-alt text-white" aria-hidden="true"></i> Editar información </button>
-          </ng-container>
-          <ng-template #cancelButton>
-            <button type="button" (click)="handleEditInfo()"
-              class="inline-flex items-center justify-center gap-2 text-white bg-slate-600 hover:bg-slate-700 focus:ring-4 focus:ring-slate-300 font-medium rounded-lg text-sm px-4 py-2 transition">
-              <i class="fas fa-times"></i>
-              Cancelar
-            </button>
-            <button type="button" (click)="handleSaveBusinessInfo()"
-              class="inline-flex items-center justify-center gap-2 text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 transition">
-              <i class="fas fa-save"></i>
-              Guardar cambios
-            </button>
-          </ng-template>
-        </ng-container>
+<div class="grid gap-5 lg:grid-cols-5">
+  <!-- Contacto -->
+  <section class="card p-6 sm:p-7 lg:col-span-2">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <p class="eyebrow">Contacto</p>
+        <h2 class="mt-1 text-xl font-bold">¿Dónde encontrarnos?</h2>
       </div>
+      @if (auth.isAdmin()) {
+        <button type="button" class="btn btn-secondary btn-sm" (click)="openEdit()">
+          <i class="fas fa-pen"></i> Editar
+        </button>
+      }
     </div>
 
-    <div class="pb-5">
-      <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2 px-2">
-        <i class="fas fa-clock"></i>
-        Horarios de Atención
-      </h3>
-      <div class="space-y-2">
-        <div *ngFor="let entry of businessInfo.hours"
-          class="flex justify-between items-center py-2 px-3 rounded-lg transition-colors" [ngClass]="{
-      'bg-blue-50 border border-blue-200': entry.dayOfWeek === getCurrentDay(),
-      'hover:bg-gray-50': entry.dayOfWeek !== getCurrentDay()
-    }">
-
-          <span class="font-medium" [ngClass]="{
-        'text-blue-800': entry.dayOfWeek === getCurrentDay(),
-        'text-gray-700': entry.dayOfWeek !== getCurrentDay()
-      }">
-            {{ getDayName(entry.dayOfWeek) }}
+    <ul class="mt-6 space-y-3">
+      <li>
+        <a [href]="mapsUrl() || null" target="_blank" rel="noopener"
+          class="flex items-center gap-4 rounded-2xl p-3 transition hover:bg-slate-50">
+          <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600"><i class="fas fa-location-dot"></i></span>
+          <span class="min-w-0">
+            <span class="block text-xs font-medium text-slate-500">Dirección</span>
+            <span class="block font-semibold text-slate-800">{{ info().address || 'Sin especificar' }}</span>
           </span>
-
-          <span class="text-sm" [ngClass]="{
-        'text-blue-600': entry.dayOfWeek === getCurrentDay(),
-        'text-gray-600': entry.dayOfWeek !== getCurrentDay()
-      }">
-            {{ entry.isClosed ? 'Cerrado' : formatTimeBlocks(entry.timeBlocks) }}
+        </a>
+      </li>
+      <li>
+        <a [href]="info().phone ? telUrl() : null" class="flex items-center gap-4 rounded-2xl p-3 transition hover:bg-slate-50">
+          <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-accent-50 text-accent-600"><i class="fas fa-phone"></i></span>
+          <span class="min-w-0">
+            <span class="block text-xs font-medium text-slate-500">Teléfono</span>
+            <span class="block font-semibold text-slate-800">{{ info().phone || 'Sin especificar' }}</span>
           </span>
-        </div>
+        </a>
+      </li>
+      <li>
+        <a [href]="info().email ? 'mailto:' + info().email : null" class="flex items-center gap-4 rounded-2xl p-3 transition hover:bg-slate-50">
+          <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600"><i class="fas fa-envelope"></i></span>
+          <span class="min-w-0">
+            <span class="block text-xs font-medium text-slate-500">Email</span>
+            <span class="block truncate font-semibold text-slate-800">{{ info().email || 'Sin especificar' }}</span>
+          </span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <!-- Horario -->
+  <section class="card p-6 sm:p-7 lg:col-span-3">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <p class="eyebrow">Horario</p>
+        <h2 class="mt-1 text-xl font-bold">Horario de atención</h2>
       </div>
+      @if (auth.isAdmin()) {
+        <button type="button" class="btn btn-secondary btn-sm" (click)="isHoursOpen.set(true)">
+          <i class="fas fa-clock"></i> Editar horario
+        </button>
+      }
     </div>
-  </div>
-  <div *ngIf="isAdmin()" class="p-5">
-    <app-business-hours></app-business-hours>
-  </div>
+
+    <ul class="mt-6 divide-y divide-slate-100">
+      @for (entry of schedule(); track entry.dayOfWeek) {
+        <li class="flex items-center justify-between gap-4 rounded-xl px-3 py-2.5"
+          [class]="entry.dayOfWeek === today ? 'border-0 bg-brand-50 ring-1 ring-brand-100' : ''">
+          <span class="flex items-center gap-2 font-semibold" [class]="entry.dayOfWeek === today ? 'text-brand-700' : 'text-slate-700'">
+            {{ dayNames[entry.dayOfWeek] }}
+            @if (entry.dayOfWeek === today) {
+              <span class="badge bg-brand-600 px-2 py-0.5 text-[10px] text-white">Hoy</span>
+            }
+          </span>
+          <span class="text-right text-sm" [class]="entry.isClosed ? 'font-medium text-slate-400' : entry.dayOfWeek === today ? 'font-semibold text-brand-700' : 'text-slate-600'">
+            @if (entry.isClosed) {
+              Cerrado
+            } @else {
+              <span class="flex flex-col items-end gap-0.5 sm:flex-row sm:gap-3">
+                @for (block of entry.timeBlocks; track $index) {
+                  <span class="whitespace-nowrap">{{ block.openTime }} – {{ block.closeTime }}</span>
+                }
+              </span>
+            }
+          </span>
+        </li>
+      }
+    </ul>
+  </section>
 </div>
 
-@if(isLoadingCardInfo){
-<div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-  <div class="animate-spin rounded-full h-12 w-12 border-t-8 border-blue-500"></div>
-</div>
+@if (auth.isAdmin()) {
+  <app-business-hours [open]="isHoursOpen()" (closed)="isHoursOpen.set(false)" />
+
+  <app-modal [open]="isEditOpen()" (closed)="isEditOpen.set(false)" title="Información del negocio" subtitle="Estos datos se muestran en la portada.">
+    <form id="businessInfoForm" (ngSubmit)="saveInfo()" class="grid gap-4 sm:grid-cols-2">
+      <div class="sm:col-span-2">
+        <label class="label" for="bi-name">Nombre del negocio</label>
+        <input id="bi-name" name="name" class="input" [(ngModel)]="form.name" required maxlength="100" />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="label" for="bi-description">Descripción</label>
+        <textarea id="bi-description" name="description" rows="4" class="input resize-none" [(ngModel)]="form.description" maxlength="2000"
+          placeholder="Cuenta a tus clientes qué os hace especiales"></textarea>
+      </div>
+      <div class="sm:col-span-2">
+        <label class="label" for="bi-address">Dirección</label>
+        <input id="bi-address" name="address" class="input" [(ngModel)]="form.address" maxlength="200" />
+      </div>
+      <div>
+        <label class="label" for="bi-phone">Teléfono</label>
+        <input id="bi-phone" name="phone" type="tel" class="input" [(ngModel)]="form.phone" maxlength="40" />
+      </div>
+      <div>
+        <label class="label" for="bi-email">Email</label>
+        <input id="bi-email" name="email" type="email" class="input" [(ngModel)]="form.email" maxlength="120" />
+      </div>
+    </form>
+
+    <div modal-footer class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4 sm:px-6">
+      <button type="button" class="btn btn-secondary" (click)="isEditOpen.set(false)">Cancelar</button>
+      <button type="submit" form="businessInfoForm" class="btn btn-primary" [disabled]="isSaving()">
+        @if (isSaving()) { <span class="spinner size-4"></span> Guardando… } @else { <i class="fas fa-floppy-disk"></i> Guardar cambios }
+      </button>
+    </div>
+  </app-modal>
 }

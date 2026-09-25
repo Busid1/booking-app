@@ -1,13 +1,31 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 import 'dotenv/config';
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { AppModule } from './app.module';
+
+const DEFAULT_ORIGINS: (string | RegExp)[] = [
+  'https://bookly-39896.web.app',
+  'https://bookly-39896.firebaseapp.com',
+  // Canales de previsualización de Firebase Hosting (p. ej. los de cada pull request)
+  /^https:\/\/bookly-39896--[a-z0-9-]+\.web\.app$/,
+  'http://localhost:4200',
+];
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  const extraOrigins = (process.env.CORS_ORIGINS ?? '').split(',').map(o => o.trim()).filter(Boolean);
   app.enableCors({
-    origin: ['https://bookly-39896.web.app', 'http://localhost:4200'],
+    origin: [...DEFAULT_ORIGINS, ...extraOrigins],
     credentials: true,
   });
+
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    transform: true,
+  }));
+
+  app.enableShutdownHooks();
 
   const port = process.env.PORT || 8080;
   await app.listen(port);

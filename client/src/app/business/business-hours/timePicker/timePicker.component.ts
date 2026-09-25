@@ -6,13 +6,13 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
   standalone: true,
 })
 export class TimePickerComponent {
-  @Input() label: string = '';
-  @Input() value: string = '';
+  @Input() label = '';
+  @Input() value = '';
+  @Input() invalid = false;
 
   @Output() timeChanged = new EventEmitter<string>();
 
   onTimeChange(event: Event) {
-    const newValue = (event.target as HTMLInputElement).value;
-    this.timeChanged.emit(newValue);
+    this.timeChanged.emit((event.target as HTMLInputElement).value);
   }
 }

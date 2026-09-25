@@ -1,3 +1,32 @@
+# Bookly API
+
+API NestJS + Prisma (PostgreSQL) de la app de reservas. Código en `functions/`.
+
+## Variables de entorno
+
+| Variable | Obligatoria | Descripción |
+| --- | --- | --- |
+| `DATABASE_URL` | Sí | Cadena de conexión PostgreSQL |
+| `JWT_SECRET` | Sí | Secreto para firmar los tokens |
+| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Para imágenes | Subida de imágenes |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | No | Credenciales de la cuenta de servicio. Sin ella la sincronización con Google Calendar se desactiva (la app sigue funcionando) |
+| `GOOGLE_CALENDAR_ID` | No | Calendario destino (por defecto el actual) |
+| `BUSINESS_TIMEZONE` | No | Zona horaria del negocio (por defecto `Europe/Madrid`) |
+| `CORS_ORIGINS` | No | Orígenes extra permitidos, separados por comas |
+
+## Desarrollo
+
+```bash
+cd functions
+npm install
+npx prisma generate
+npm run build && node lib/main.js
+```
+
+Los endpoints de gestión (servicios, horario, información del negocio, listado/edición de citas y usuarios) requieren un token de un usuario con `role = 'admin'`.
+
+---
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
