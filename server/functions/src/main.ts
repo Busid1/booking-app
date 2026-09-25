@@ -3,7 +3,13 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
-const DEFAULT_ORIGINS = ['https://bookly-39896.web.app', 'https://bookly-39896.firebaseapp.com', 'http://localhost:4200'];
+const DEFAULT_ORIGINS: (string | RegExp)[] = [
+  'https://bookly-39896.web.app',
+  'https://bookly-39896.firebaseapp.com',
+  // Canales de previsualización de Firebase Hosting (p. ej. los de cada pull request)
+  /^https:\/\/bookly-39896--[a-z0-9-]+\.web\.app$/,
+  'http://localhost:4200',
+];
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
