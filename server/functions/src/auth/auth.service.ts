@@ -1,83 +1,60 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
+import { AuthUser } from './auth-user.interface';
+
+const publicUserSelect = { id: true, email: true, name: true, role: true, createdAt: true };
 
 @Injectable()
 export class AuthService {
   constructor(private readonly prismaService: PrismaService, private jwtService: JwtService) { }
 
-  async login(loginDto: LoginDto) {
-    const { email, password } = loginDto;
-    try {
-      const user = await this.prismaService.user.findUnique({
-        where: { email },
-      });
-      if (!user) throw new BadRequestException('Contraseña o email incorrecto');
-
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-
-      if (!isPasswordValid) {
-        throw new BadRequestException('Contraseña o email incorrecto');
-      }
-
-      const { password: _, ...userWithoutPassword } = user;
-
-      const payload = {
-        ...userWithoutPassword,
-      }
-
-      const authToken = await this.jwtService.signAsync(payload)
-
-      return { authToken, role: user.role };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-    }
+  private async buildSession(user: AuthUser) {
+    const payload: AuthUser = { id: user.id, email: user.email, name: user.name, role: user.role };
+    const authToken = await this.jwtService.signAsync(payload);
+    return { authToken, role: user.role, user: payload };
   }
 
-  async getUsers() {
-    return await this.prismaService.user.findMany();
+  async login(loginDto: LoginDto) {
+    const email = loginDto.email.trim().toLowerCase();
+    const user = await this.prismaService.user.findUnique({ where: { email } });
+
+    if (!user || !(await bcrypt.compare(loginDto.password, user.password))) {
+      throw new UnauthorizedException('Email o contraseña incorrectos');
+    }
+
+    return this.buildSession(user);
   }
 
   async register(registerDto: RegisterDto) {
-    const { name, email, password } = registerDto;
-    const passwordHashed = await bcrypt.hash(password, 10);
-    try {
-      const userFound = await this.prismaService.user.findUnique({
-        where: { email },
-      });
+    const email = registerDto.email.trim().toLowerCase();
+    const name = registerDto.name.trim();
 
-      if (userFound) throw new BadRequestException('The user already exists');
+    const userFound = await this.prismaService.user.findUnique({ where: { email } });
+    if (userFound) throw new ConflictException('Ya existe una cuenta con ese email');
 
-      const user = await this.prismaService.user.create({
-        data: {
-          name,
-          email,
-          role: "user",
-          password: passwordHashed,
-        },
-      });
+    const user = await this.prismaService.user.create({
+      data: {
+        name,
+        email,
+        role: 'user',
+        password: await bcrypt.hash(registerDto.password, 10),
+      },
+    });
 
-      const { password: _, ...userWithoutPassword } = user;
+    return this.buildSession(user);
+  }
 
-      const payload = {
-        ...userWithoutPassword,
-      }
+  async getUsers() {
+    return this.prismaService.user.findMany({ select: publicUserSelect, orderBy: { createdAt: 'desc' } });
+  }
 
-      const authToken = await this.jwtService.signAsync(payload)
-
-      return { authToken, role: user.role };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-
-      throw new Error(error);
-    }
-
+  async getProfile(userId: string) {
+    const user = await this.prismaService.user.findUnique({ where: { id: userId }, select: publicUserSelect });
+    if (!user) throw new UnauthorizedException('Sesión no válida');
+    return user;
   }
 }

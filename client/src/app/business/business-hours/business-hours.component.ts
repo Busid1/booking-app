@@ -1,134 +1,112 @@
-import { Component, OnInit } from '@angular/core';
-import { BusinessHoursInterface } from '../../shared/interfaces/business-hours.interface';
+import { Component, EventEmitter, inject, Input, OnChanges, Output, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { ServicesService } from '../../dashboard/admin/crud/services.service';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { TimePickerComponent } from './timePicker/timePicker.component';
-import Swal from 'sweetalert2';
 import { SharedService } from '../../shared/services/shared.service';
+import { TimePickerComponent } from './timePicker/timePicker.component';
+import { ModalComponent } from '../../shared/services/modal.component';
+import { BusinessHoursInterface, TimeBlock } from '../../shared/interfaces/business-hours.interface';
+import { DAY_NAMES } from '../../shared/services/time.utils';
+import { alerts } from '../../shared/services/alerts';
 
+interface DayForm {
+  isClosed: boolean;
+  timeBlocks: TimeBlock[];
+}
+
+/** Editor del horario semanal (modal) para el administrador. */
 @Component({
   selector: 'app-business-hours',
   templateUrl: './business-hours.component.html',
-  imports: [CommonModule, FormsModule, TimePickerComponent],
+  imports: [FormsModule, TimePickerComponent, ModalComponent],
   standalone: true,
 })
+export class BusinessHoursComponent implements OnChanges {
+  private api = inject(ServicesService);
+  private store = inject(SharedService);
 
-export class BusinessHoursComponent implements OnInit {
-  constructor(private businessHoursService: ServicesService, private sharedService: SharedService) { }
+  @Input() open = false;
+  @Output() closed = new EventEmitter<void>();
 
-  editBusinessHours: boolean = false;
-  isSaving: boolean = false;
-  handleEditBusinessHours() {
-    this.editBusinessHours = !this.editBusinessHours
+  readonly dayNames = DAY_NAMES;
+  readonly isSaving = signal(false);
+  days: DayForm[] = [];
+
+  ngOnChanges() {
+    if (this.open) this.resetForm();
   }
 
-  formData: {
-    [key: number]: {
-      isClosed: boolean;
-      timeBlocks: {
-        openTime: string;
-        closeTime: string;
-      }[];
-    };
-  } = {
-      0: { isClosed: false, timeBlocks: [] },
-      1: { isClosed: false, timeBlocks: [] },
-      2: { isClosed: false, timeBlocks: [] },
-      3: { isClosed: false, timeBlocks: [] },
-      4: { isClosed: false, timeBlocks: [] },
-      5: { isClosed: false, timeBlocks: [] },
-      6: { isClosed: false, timeBlocks: [] },
-    };
-
-  dayOfWeek: string[] = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-
-  handleTimeChange(dayIndex: number, blockIndex: number, field: 'openTime' | 'closeTime', value: string) {
-    this.formData[dayIndex].timeBlocks[blockIndex][field] = value;
-  }
-
-  prepareFormDataForSubmission(): BusinessHoursInterface[] {
-    return Object.entries(this.formData).map(([day, data]) => ({
-      dayOfWeek: parseInt(day),
-      isClosed: data.timeBlocks.length === 0 ? true : data.isClosed,
-      timeBlocks: data.timeBlocks,
+  private resetForm() {
+    this.days = this.store.weekSchedule().map(d => ({
+      isClosed: d.isClosed,
+      timeBlocks: d.timeBlocks.map(b => ({ openTime: b.openTime, closeTime: b.closeTime })),
     }));
   }
 
-  async handleSaveBusinessHours(event: Event) {
-    event.preventDefault()
-    this.isSaving = true;
-    const payload = this.prepareFormDataForSubmission(); 
-    
-    const hasEmptyBlock = Object.values(payload).some((day: any) =>
-      day.timeBlocks.some((block: any) => !block.openTime || !block.closeTime)
-    );
+  toggleClosed(day: DayForm) {
+    day.isClosed = !day.isClosed;
+    if (!day.isClosed && !day.timeBlocks.length) day.timeBlocks.push({ openTime: '09:00', closeTime: '14:00' });
+  }
 
-    if (hasEmptyBlock) {
-      await Swal.fire({
-        title: "Bloques de horas incompletos",
-        text: "Por favor, completa todas las horas antes de guardar.",
-        icon: "warning",
-        confirmButtonText: "Ok",
-        confirmButtonColor: "#f59e0b",
-      });
+  addBlock(day: DayForm) {
+    const last = day.timeBlocks[day.timeBlocks.length - 1];
+    day.timeBlocks.push(last ? { openTime: '16:00', closeTime: '20:00' } : { openTime: '09:00', closeTime: '14:00' });
+  }
+
+  removeBlock(day: DayForm, index: number) {
+    day.timeBlocks.splice(index, 1);
+    if (!day.timeBlocks.length) day.isClosed = true;
+  }
+
+  /** Copia el horario del lunes al resto de días laborables. */
+  copyMondayToWeekdays() {
+    const monday = this.days[0];
+    for (let i = 1; i < 5; i++) {
+      this.days[i] = { isClosed: monday.isClosed, timeBlocks: monday.timeBlocks.map(b => ({ ...b })) };
+    }
+  }
+
+  isBlockInvalid(block: TimeBlock): boolean {
+    return !block.openTime || !block.closeTime || block.openTime >= block.closeTime;
+  }
+
+  private validate(): string | null {
+    for (const [i, day] of this.days.entries()) {
+      if (day.isClosed) continue;
+      if (day.timeBlocks.some(b => this.isBlockInvalid(b))) {
+        return `${this.dayNames[i]}: la hora de apertura debe ser anterior a la de cierre.`;
+      }
+      const sorted = [...day.timeBlocks].sort((a, b) => a.openTime.localeCompare(b.openTime));
+      if (sorted.some((b, j) => j > 0 && b.openTime < sorted[j - 1].closeTime)) {
+        return `${this.dayNames[i]}: hay tramos horarios que se solapan.`;
+      }
+    }
+    return null;
+  }
+
+  async save() {
+    const error = this.validate();
+    if (error) {
+      alerts.warning('Revisa el horario', error);
       return;
     }
 
-    this.businessHoursService.saveBusinessHours(payload).subscribe({
-      next: async () => {
-        Swal.fire({
-          title: "Horario guardado correctamente",
-          confirmButtonText: "Ok",
-          confirmButtonColor: "#22c55e",
-        })
+    const payload: BusinessHoursInterface[] = this.days.map((day, dayOfWeek) => ({
+      dayOfWeek,
+      isClosed: day.isClosed || day.timeBlocks.length === 0,
+      timeBlocks: day.isClosed ? [] : day.timeBlocks,
+    }));
 
-        this.editBusinessHours = false;
-
-        await this.sharedService.loadAllBusinessHours()
-        this.isSaving = false;
-      },
-      error: (err) => console.error('Error al guardar horarios:', err)
-    });
-  }
-
-  async ngOnInit() {
-    const response = await firstValueFrom(this.businessHoursService.getBusinessHours());
-
-    const defaultFormData: {
-      [key: number]: {
-        isClosed: boolean;
-        timeBlocks: {
-          openTime: string;
-          closeTime: string;
-        }[];
-      };
-    } = {
-      0: { isClosed: false, timeBlocks: [] },
-      1: { isClosed: false, timeBlocks: [] },
-      2: { isClosed: false, timeBlocks: [] },
-      3: { isClosed: false, timeBlocks: [] },
-      4: { isClosed: false, timeBlocks: [] },
-      5: { isClosed: false, timeBlocks: [] },
-      6: { isClosed: false, timeBlocks: [] },
-    };
-
-    for (const { dayOfWeek, isClosed, timeBlocks } of response) {
-      defaultFormData[dayOfWeek] = {
-        isClosed: timeBlocks.length === 0 ? true : isClosed,
-        timeBlocks: timeBlocks.length === 0 ? [] : timeBlocks
-      };
+    this.isSaving.set(true);
+    try {
+      await firstValueFrom(this.api.saveBusinessHours(payload));
+      await this.store.loadAllBusinessHours();
+      alerts.success('Horario guardado');
+      this.closed.emit();
+    } catch (err) {
+      alerts.error(err, 'No se ha podido guardar el horario');
+    } finally {
+      this.isSaving.set(false);
     }
-
-    this.formData = defaultFormData;
-  }
-
-  handleAddNewTime(index: number) {
-    this.formData[index].timeBlocks.push({ openTime: '', closeTime: '' });
-  }
-
-  handleRemoveNewTime(dayIndex: number, blockIndex: number) {
-    this.formData[dayIndex].timeBlocks.splice(blockIndex, 1);
   }
 }

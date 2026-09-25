@@ -1,66 +1,77 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { ServiceInterface } from '../../../../shared/interfaces/service.interface';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import Swal from 'sweetalert2';
+import { ServiceInterface } from '../../../../shared/interfaces/service.interface';
+import { ModalComponent } from '../../../../shared/services/modal.component';
+import { alerts } from '../../../../shared/services/alerts';
 
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
+
+/** Formulario (modal) de creación/edición de servicios. Es presentacional: emite los datos validados. */
 @Component({
   selector: 'app-service-form',
   templateUrl: './service-form.component.html',
-  styleUrl: './service-form.component.scss',
-  imports: [FormsModule, CommonModule],
-  standalone: true
+  imports: [FormsModule, ModalComponent],
+  standalone: true,
 })
-export class ServiceFormComponent {
+export class ServiceFormComponent implements OnChanges, OnDestroy {
   @Input() mode: 'create' | 'update' = 'create';
-  @Input() serviceFormData: ServiceInterface = {
-    title: '',
-    price: 0,
-    duration: 0,
-    description: '',
-    image: null,
-  };
-
+  @Input() open = false;
+  @Input() service: ServiceInterface | null = null;
   @Input() isSaving = false;
-  @Input() modalId: string = '';
 
   @Output() close = new EventEmitter<void>();
   @Output() submitForm = new EventEmitter<ServiceInterface>();
 
-  handleInputChange(field: keyof ServiceInterface, event: Event) {
-    const value = (event.target as HTMLInputElement).value;
+  readonly durationPresets = DURATION_PRESETS;
+  readonly preview = signal<string | null>(null);
+  private objectUrl: string | null = null;
 
-    if (!this.serviceFormData) return;
+  form: ServiceInterface = this.emptyForm();
 
-    if (field === 'price') {
-      const parsed = parseFloat(value);
-      this.serviceFormData.price = isNaN(parsed) ? 0 : parsed;
-    } else if (field === 'duration') {
-      const parsed = parseInt(value, 10);
-      this.serviceFormData.duration = isNaN(parsed) ? 0 : parsed;
-    } else {
-      this.serviceFormData[field] = value;
-    }
+  private emptyForm(): ServiceInterface {
+    return { title: '', price: 0, duration: 30, description: '', image: null };
+  }
+
+  ngOnChanges() {
+    if (!this.open) return;
+    this.revokePreview();
+    this.form = this.service ? { ...this.service, image: null } : this.emptyForm();
+    this.preview.set(typeof this.service?.image === 'string' ? this.service.image : null);
+  }
+
+  ngOnDestroy() {
+    this.revokePreview();
+  }
+
+  private revokePreview() {
+    if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
+    this.objectUrl = null;
   }
 
   handleFileChange(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file?.type.startsWith('image/')) {
-      Swal.fire({ icon: 'error', text: 'Por favor selecciona solo imágenes.' });
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alerts.warning('Selecciona un archivo de imagen');
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      alerts.warning('La imagen no puede superar los 5 MB');
       return;
     }
 
-    this.serviceFormData.image = file;
+    this.revokePreview();
+    this.objectUrl = URL.createObjectURL(file);
+    this.preview.set(this.objectUrl);
+    this.form.image = file;
   }
 
-
-  onSubmit(event: Event) {
-    event.preventDefault();
-    this.submitForm.emit(this.serviceFormData);
-  }
-
-  onClose() {
-    (document.activeElement as HTMLElement)?.blur()
-    this.close.emit();
+  onSubmit(valid: boolean | null) {
+    if (!valid) return;
+    this.submitForm.emit({ ...this.form, id: this.service?.id });
   }
 }

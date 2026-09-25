@@ -1,135 +1,135 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, computed, inject, Input, OnDestroy, OnInit, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ServicesService } from '../../../dashboard/admin/crud/services.service';
-import { BusinessInfoInterface } from '../../../shared/interfaces/business-info.interface';
-import Swal from 'sweetalert2';
-import { CommonModule } from '@angular/common';
-import { AuthService } from '../../../auth/auth.service';
+import { SharedService } from '../../../shared/services/shared.service';
+import { ModalComponent } from '../../../shared/services/modal.component';
+import { alerts } from '../../../shared/services/alerts';
 
+const MAX_IMAGES = 3;
+const AUTOPLAY_MS = 6000;
+
+/** Carrusel de imágenes del negocio con gestor de imágenes para el administrador. */
 @Component({
   selector: 'app-carousel',
   templateUrl: './carousel.component.html',
-  imports: [CommonModule],
-  standalone: true
+  imports: [ModalComponent],
+  standalone: true,
 })
-export class CarouselComponent implements OnInit {
+export class CarouselComponent implements OnInit, OnDestroy {
+  private api = inject(ServicesService);
+  private store = inject(SharedService);
 
-  placeholderUrl = 'https://www.svgrepo.com/show/508699/landscape-placeholder.svg';
+  @Input() isAdmin = false;
 
-  slides: string[] = [];
-  previews: string[] = ['', '', ''];
-  selectedFiles: (File | null)[] = [null, null, null];
+  readonly slides = computed(() => this.store.businessInfo().images ?? []);
+  readonly currentIndex = signal(0);
+  private timer: ReturnType<typeof setInterval> | null = null;
 
-  businessInfoFormData: BusinessInfoInterface = {
-    name: '',
-    description: '',
-    address: '',
-    phone: '',
-    email: '',
-    images: []
-  };
+  // Gestor de imágenes
+  readonly isModalOpen = signal(false);
+  readonly pending = signal<{ file: File; preview: string }[]>([]);
+  readonly isUploading = signal(false);
+  readonly deletingUrl = signal<string | null>(null);
+  readonly freeSlots = computed(() => MAX_IMAGES - this.slides().length - this.pending().length);
+  readonly maxImages = MAX_IMAGES;
 
-  currentIndex = 0;
-  interval: any;
-  isModalOpen = false;
-
-  constructor(private businessHoursService: ServicesService, private authService: AuthService) { }
-
-  async ngOnInit() {
-    this.interval = setInterval(() => this.next(), 5000);
-
-    const response = await firstValueFrom(this.businessHoursService.getBusinessInfo());
-    this.slides = response.flatMap(item => (item.images as string[]) || []);
-
-    while (this.slides.length < 3) this.slides.push("");
+  ngOnInit() {
+    this.startAutoplay();
   }
 
-  ngOnDestroy() { clearInterval(this.interval); }
-  next() { this.currentIndex = (this.currentIndex + 1) % this.slides.length; clearInterval(this.interval); }
-  prev() { this.currentIndex = (this.currentIndex - 1 + this.slides.length) % this.slides.length; clearInterval(this.interval); }
-  goToSlide(i: number) { this.currentIndex = i; }
-
-  async openModal() {
-    this.isModalOpen = true;
-    this.previews = ['', '', ''];
-    this.selectedFiles = [null, null, null];
-    const response = await firstValueFrom(this.businessHoursService.getBusinessInfo());
-    this.slides = response.flatMap(item => (item.images as string[]) || []);
-    while (this.slides.length < 3) this.slides.push("");
+  ngOnDestroy() {
+    this.stopAutoplay();
+    this.pending().forEach(p => URL.revokeObjectURL(p.preview));
   }
 
-  closeModal() { this.isModalOpen = false; }
-
-  onFileChange(event: any, index: number) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    this.selectedFiles[index] = file;
-    const reader = new FileReader();
-    reader.onload = (e: any) => this.previews[index] = e.target.result;
-    reader.readAsDataURL(file);
+  private startAutoplay() {
+    this.stopAutoplay();
+    this.timer = setInterval(() => this.step(1), AUTOPLAY_MS);
   }
 
-  isAdmin() {
-    return this.authService.isAdmin();
+  private stopAutoplay() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
   }
 
-  async removeImage(index: number) {
-    const imageToDelete = this.slides[index];
-    this.previews[index] = '';
+  private step(delta: number) {
+    const total = this.slides().length;
+    if (total < 2) return;
+    this.currentIndex.set((this.currentIndex() + delta + total) % total);
+  }
 
-    if (!imageToDelete) return;
+  /** Navegación manual: reinicia el temporizador en lugar de detener el autoplay. */
+  next() { this.step(1); this.startAutoplay(); }
+  prev() { this.step(-1); this.startAutoplay(); }
+  goToSlide(i: number) { this.currentIndex.set(i); this.startAutoplay(); }
 
-    const result = await Swal.fire({
-      title: '¿Seguro que quieres eliminar esta imagen?',
-      text: "Esta acción no se puede deshacer",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
-    })
+  // --- Gestor de imágenes ---
+  openModal() {
+    this.pending.set([]);
+    this.isModalOpen.set(true);
+  }
 
-    if (result.isConfirmed) {
-      this.businessHoursService.deleteBusinessImage(imageToDelete).subscribe({
-        next: () => {
-          this.slides[index] = '';
-          this.previews[index] = '';
-          this.selectedFiles[index] = null;
-          Swal.fire('Imagen eliminada', '', 'success');
-          this.closeModal();
-        },
-        error: () => Swal.fire('Error al eliminar la imagen', '', 'error')
-      });
+  closeModal() {
+    this.pending().forEach(p => URL.revokeObjectURL(p.preview));
+    this.pending.set([]);
+    this.isModalOpen.set(false);
+  }
+
+  onFilesSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+
+    const images = files.filter(f => f.type.startsWith('image/'));
+    if (images.length !== files.length) alerts.warning('Solo se permiten imágenes');
+
+    const tooBig = images.filter(f => f.size > 5 * 1024 * 1024);
+    if (tooBig.length) alerts.warning('Algunas imágenes superan los 5 MB y se han descartado');
+
+    const accepted = images.filter(f => f.size <= 5 * 1024 * 1024).slice(0, Math.max(this.freeSlots(), 0));
+    this.pending.update(list => [...list, ...accepted.map(file => ({ file, preview: URL.createObjectURL(file) }))]);
+  }
+
+  removePending(index: number) {
+    const item = this.pending()[index];
+    URL.revokeObjectURL(item.preview);
+    this.pending.update(list => list.filter((_, i) => i !== index));
+  }
+
+  async removeImage(url: string) {
+    const confirmed = await alerts.confirm({
+      title: '¿Eliminar esta imagen?',
+      text: 'Esta acción no se puede deshacer.',
+      confirmText: 'Sí, eliminar',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    this.deletingUrl.set(url);
+    try {
+      await firstValueFrom(this.api.deleteBusinessImage(url));
+      await this.store.loadBusinessInfo();
+      this.currentIndex.set(0);
+      alerts.success('Imagen eliminada');
+    } catch (error) {
+      alerts.error(error, 'No se ha podido eliminar la imagen');
+    } finally {
+      this.deletingUrl.set(null);
     }
   }
 
-  handleUploadImages() {
-    const files = this.selectedFiles.filter(f => f !== null) as File[];
-
-    this.businessHoursService.uploadImages(files).subscribe({
-      next: () => {
-        Swal.fire('Imágenes subidas correctamente', '', 'success');
-
-        this.selectedFiles.forEach((file, i) => {
-          if (file && this.previews[i]) {
-            this.slides[i] = this.previews[i];
-          }
-        });
-
-        this.slides = [...this.slides];
-
-        this.closeModal();
-      },
-      error: (err) => {
-        console.error(err);
-        Swal.fire('Error al subir imágenes', '', 'error');
-      }
-    });
-  }
-
-  getImageUrl(index: number) {
-    return this.slides[index] || this.placeholderUrl;
+  async uploadPending() {
+    if (!this.pending().length) return;
+    this.isUploading.set(true);
+    try {
+      await firstValueFrom(this.api.uploadImages(this.pending().map(p => p.file)));
+      await this.store.loadBusinessInfo();
+      alerts.success('Imágenes subidas correctamente');
+      this.closeModal();
+    } catch (error) {
+      alerts.error(error, 'No se han podido subir las imágenes');
+    } finally {
+      this.isUploading.set(false);
+    }
   }
 }

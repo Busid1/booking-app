@@ -1,25 +1,80 @@
-<div class="flex flex-col">
-    <app-business-card></app-business-card>
-    @if(!isClosePopup){
-    <div>
-        <div
-            class="fixed bottom-20 right-4 bg-white shadow-lg px-4 py-2 rounded-xl text-sm flex items-center gap-2 animate-bounce z-50">
-            <span class="font-medium text-gray-800">Reserva tu cita por WhatsApp</span>
-            <span class="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">New</span>
-            <button (click)="closePopup()"
-                class="text-gray-400 hover:bg-red-600 px-2 rounded-full hover:text-white text-xl font-bold">
-                &times;
-            </button>
-        </div>
+<section class="card overflow-hidden p-0">
+  <div class="h-[26rem] sm:h-[30rem]">
+    <app-carousel [isAdmin]="auth.isAdmin()">
+      <div class="flex h-full flex-col justify-end p-6 sm:p-10">
+        @if (isLoading()) {
+          <div class="space-y-3">
+            <div class="h-6 w-32 animate-pulse rounded-full bg-white/20"></div>
+            <div class="h-10 w-2/3 animate-pulse rounded-xl bg-white/20"></div>
+            <div class="h-4 w-1/2 animate-pulse rounded-lg bg-white/20"></div>
+          </div>
+        } @else {
+          @if (store.openStatus().label) {
+            <span class="badge w-fit animate-slide-up backdrop-blur"
+              [class]="store.openStatus().open ? 'bg-accent-500/90 text-white' : 'bg-white/15 text-white ring-1 ring-white/30'">
+              <span class="relative flex size-2">
+                @if (store.openStatus().open) {
+                  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75"></span>
+                }
+                <span class="relative inline-flex size-2 rounded-full" [class]="store.openStatus().open ? 'bg-white' : 'bg-rose-400'"></span>
+              </span>
+              {{ store.openStatus().label }}
+            </span>
+          }
+          <h1 class="mt-4 max-w-2xl animate-slide-up text-4xl font-extrabold leading-tight text-white [animation-delay:60ms] sm:text-5xl">
+            {{ store.businessInfo().name || 'Bienvenido' }}
+          </h1>
+          @if (store.businessInfo().description) {
+            <p class="mt-3 line-clamp-3 max-w-2xl animate-slide-up text-sm leading-relaxed text-slate-200 [animation-delay:120ms] sm:text-base">
+              {{ store.businessInfo().description }}
+            </p>
+          }
+          <div class="mt-6 flex animate-slide-up flex-wrap gap-3 [animation-delay:180ms]">
+            @if (auth.isAdmin()) {
+              <a routerLink="/panel" class="btn btn-lg bg-white text-slate-900 shadow-lg hover:bg-slate-100">
+                <i class="fas fa-chart-line text-brand-600"></i> Ir al panel
+              </a>
+              <a routerLink="/servicios" class="btn btn-lg bg-white/10 text-white ring-1 ring-white/30 backdrop-blur hover:bg-white/20">
+                Gestionar servicios
+              </a>
+            } @else {
+              <a routerLink="/servicios" class="btn btn-primary btn-lg shadow-lg">
+                <i class="fas fa-calendar-plus"></i> Reservar cita
+              </a>
+              @if (auth.isLoggedIn()) {
+                <a routerLink="/mis-citas" class="btn btn-lg bg-white/10 text-white ring-1 ring-white/30 backdrop-blur hover:bg-white/20">
+                  Mis citas
+                </a>
+              }
+            }
+          </div>
+        }
+      </div>
+    </app-carousel>
+  </div>
+</section>
 
-        <a href="https://wa.me/15551833415" target="_blank"
-            class="fixed bottom-4 right-4 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg z-50"
-            aria-label="Contactar por WhatsApp">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                    d="M12.04 2.004c-5.513 0-9.999 4.484-9.999 10.001 0 1.763.465 3.487 1.345 5.002l-1.406 5.129 5.268-1.379a9.95 9.95 0 004.792 1.213h.001c5.514 0 9.999-4.484 9.999-10.001 0-5.516-4.485-10-10-10zm0 18.004a7.962 7.962 0 01-4.1-1.131l-.292-.174-3.124.818.834-3.07-.19-.315a7.95 7.95 0 01-1.245-4.34c0-4.411 3.589-8.001 8.001-8.001s8 3.59 8 8.001-3.589 8.001-8 8.001zm4.539-5.939c-.242-.121-1.435-.707-1.657-.787-.222-.082-.384-.121-.547.122-.161.242-.628.787-.77.949-.141.161-.283.181-.525.06-.242-.121-1.02-.376-1.943-1.2-.719-.641-1.204-1.432-1.345-1.674-.141-.242-.015-.373.106-.494.11-.109.242-.283.363-.424.121-.141.161-.242.242-.403.081-.161.04-.303-.02-.424-.06-.121-.546-1.318-.749-1.807-.197-.473-.399-.409-.546-.416l-.464-.009c-.161 0-.424.06-.646.303s-.85.83-.85 2.026c0 1.197.87 2.355.99 2.517.121.161 1.71 2.61 4.144 3.662.58.25 1.031.398 1.384.509.582.185 1.112.159 1.531.097.467-.07 1.435-.586 1.639-1.152.202-.566.202-1.051.141-1.152-.06-.1-.22-.161-.462-.282z" />
-            </svg>
-        </a>
-    </div>
-    }
+<div class="mt-5">
+  <app-business-card />
 </div>
+
+@if (!auth.isAdmin()) {
+  <div class="fixed bottom-5 right-5 z-40 flex items-end gap-3">
+    @if (showWhatsappPopup()) {
+      <div class="mb-2 flex animate-pop-in items-center gap-2 rounded-2xl border border-slate-200 bg-white py-2 pl-4 pr-2 text-sm shadow-lift">
+        <span class="font-semibold text-slate-800">Reserva también por WhatsApp</span>
+        <span class="badge bg-accent-100 px-2 py-0.5 text-[10px] text-accent-700">Nuevo</span>
+        <button type="button" (click)="closePopup()" class="btn-icon size-7" aria-label="Cerrar aviso">
+          <i class="fas fa-xmark text-xs"></i>
+        </button>
+      </div>
+    }
+    <a href="https://wa.me/15551833415" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp"
+      class="grid size-14 place-items-center rounded-full bg-[#25D366] text-white shadow-lg shadow-green-600/30 transition hover:scale-105">
+      <svg xmlns="http://www.w3.org/2000/svg" class="size-7" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M12.04 2.004c-5.513 0-9.999 4.484-9.999 10.001 0 1.763.465 3.487 1.345 5.002l-1.406 5.129 5.268-1.379a9.95 9.95 0 004.792 1.213h.001c5.514 0 9.999-4.484 9.999-10.001 0-5.516-4.485-10-10-10zm0 18.004a7.962 7.962 0 01-4.1-1.131l-.292-.174-3.124.818.834-3.07-.19-.315a7.95 7.95 0 01-1.245-4.34c0-4.411 3.589-8.001 8.001-8.001s8 3.59 8 8.001-3.589 8.001-8 8.001zm4.539-5.939c-.242-.121-1.435-.707-1.657-.787-.222-.082-.384-.121-.547.122-.161.242-.628.787-.77.949-.141.161-.283.181-.525.06-.242-.121-1.02-.376-1.943-1.2-.719-.641-1.204-1.432-1.345-1.674-.141-.242-.015-.373.106-.494.11-.109.242-.283.363-.424.121-.141.161-.242.242-.403.081-.161.04-.303-.02-.424-.06-.121-.546-1.318-.749-1.807-.197-.473-.399-.409-.546-.416l-.464-.009c-.161 0-.424.06-.646.303s-.85.83-.85 2.026c0 1.197.87 2.355.99 2.517.121.161 1.71 2.61 4.144 3.662.58.25 1.031.398 1.384.509.582.185 1.112.159 1.531.097.467-.07 1.435-.586 1.639-1.152.202-.566.202-1.051.141-1.152-.06-.1-.22-.161-.462-.282z" />
+      </svg>
+    </a>
+  </div>
+}

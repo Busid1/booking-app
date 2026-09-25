@@ -4,5 +4,5 @@ export interface BusinessInfoInterface {
     address: string;
     phone: string;
     email: string;
-    images?: File[] | string[] | null;
+    images?: string[];
 }

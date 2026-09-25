@@ -1,22 +1,19 @@
-import {
-  IsString,
-  IsBoolean,
-  IsNumber,
-  ValidateNested,
-  IsArray
-} from 'class-validator';
+import { IsBoolean, IsInt, Max, Min, ValidateNested, IsArray, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
+import { TIME_REGEX } from '../common/time.utils';
 
 export class TimeBlockDto {
-  @IsString()
+  @Matches(TIME_REGEX, { message: 'La hora de apertura debe tener el formato HH:mm' })
   openTime: string;
 
-  @IsString()
+  @Matches(TIME_REGEX, { message: 'La hora de cierre debe tener el formato HH:mm' })
   closeTime: string;
 }
 
 export class BusinessHoursDto {
-  @IsNumber()
+  @IsInt()
+  @Min(0)
+  @Max(6)
   dayOfWeek: number;
 
   @IsArray()

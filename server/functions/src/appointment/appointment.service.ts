@@ -1,160 +1,213 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppointmentDto } from '../dto/appointment.dto';
 import { GoogleCalendarService } from '../google-calendar/googleCalendar.service';
+import { AuthUser } from '../auth/auth-user.interface';
+import { mondayBasedDayIndex, nowInBusinessTimezone, toMinutes, toTimeString } from '../common/time.utils';
+
+const userPublicSelect = { id: true, email: true, name: true };
 
 @Injectable()
 export class AppointmentService {
-    constructor(private readonly prismaService: PrismaService,
+    constructor(
+        private readonly prismaService: PrismaService,
         private readonly googleCalendarService: GoogleCalendarService,
     ) { }
-    async createAppointment(dto: AppointmentDto, userId: string) {
-        const { date, startTime, endTime, serviceId, clientName } = dto;
 
-        if (!userId || typeof userId !== 'string') {
-            throw new BadRequestException('User ID inválido');
+    private async getServiceOrFail(serviceId: string) {
+        const service = await this.prismaService.service.findUnique({ where: { id: serviceId } });
+        if (!service) throw new BadRequestException('El servicio seleccionado no existe');
+        return service;
+    }
+
+    private computeEndTime(startTime: string, duration: number): string {
+        const end = toMinutes(startTime) + duration;
+        if (end > 24 * 60) throw new BadRequestException('La cita no puede terminar después de medianoche');
+        return toTimeString(end);
+    }
+
+    private assertNotInPast(date: string, startTime: string) {
+        const now = nowInBusinessTimezone();
+        if (date < now.date || (date === now.date && startTime <= now.time)) {
+            throw new BadRequestException('No se pueden reservar citas en el pasado');
         }
+    }
+
+    private async assertWithinBusinessHours(date: string, startTime: string, endTime: string) {
+        const dayHours = await this.prismaService.businessHours.findUnique({
+            where: { dayOfWeek: mondayBasedDayIndex(date) },
+            include: { timeBlocks: true },
+        });
+
+        const fits = !!dayHours && !dayHours.isClosed && dayHours.timeBlocks.some(
+            b => b.openTime <= startTime && endTime <= b.closeTime,
+        );
+        if (!fits) throw new BadRequestException('La hora seleccionada está fuera del horario del negocio');
+    }
+
+    private async assertNoOverlap(date: string, startTime: string, endTime: string, excludeId?: string) {
+        const overlapping = await this.prismaService.appointment.findFirst({
+            where: {
+                date,
+                startTime: { lt: endTime },
+                endTime: { gt: startTime },
+                ...(excludeId ? { id: { not: excludeId } } : {}),
+            },
+        });
+        if (overlapping) {
+            throw new ConflictException(
+                `Ese horario ya está ocupado (${overlapping.startTime} - ${overlapping.endTime}). Elige otra hora.`,
+            );
+        }
+    }
+
+    private calendarData(appointment: {
+        date: string; startTime: string; endTime: string; clientName: string | null;
+        user?: { name: string | null } | null; service: { title: string; price: number; duration: number };
+    }) {
+        return {
+            summary: `${appointment.service.title} · ${appointment.clientName || appointment.user?.name || 'Cliente'}`,
+            date: appointment.date,
+            startTime: appointment.startTime,
+            endTime: appointment.endTime,
+            price: appointment.service.price,
+            duration: appointment.service.duration,
+            client: appointment.clientName || appointment.user?.name || 'Desconocido',
+            service: appointment.service.title || 'Sin título',
+        };
+    }
+
+    async createAppointment(dto: AppointmentDto, user: AuthUser) {
+        const isAdmin = user.role === 'admin';
+        const service = await this.getServiceOrFail(dto.serviceId);
+        const endTime = this.computeEndTime(dto.startTime, service.duration);
+
+        this.assertNotInPast(dto.date, dto.startTime);
+        // El administrador puede crear citas fuera del horario (p. ej. huecos especiales).
+        if (!isAdmin) await this.assertWithinBusinessHours(dto.date, dto.startTime, endTime);
+        await this.assertNoOverlap(dto.date, dto.startTime, endTime);
 
         const appointment = await this.prismaService.appointment.create({
             data: {
-                date,
-                startTime,
+                date: dto.date,
+                startTime: dto.startTime,
                 endTime,
-                clientName,
-                user: {
-                    connect: { id: userId },
-                },
-                service: {
-                    connect: { id: serviceId },
-                },
+                clientName: (isAdmin ? dto.clientName?.trim() : null) || user.name || null,
+                user: { connect: { id: user.id } },
+                service: { connect: { id: service.id } },
             },
-            include: {
-                user: { select: { id: true, email: true, name: true } },
-                service: true,
-            },
+            include: { user: { select: userPublicSelect }, service: true },
         });
 
-        const startDateTime = `${appointment.date}T${appointment.startTime}`;
-        const endDateTime = `${appointment.date}T${appointment.endTime}`;
+        const googleEventId = await this.googleCalendarService.createEvent(this.calendarData(appointment));
+        if (!googleEventId) return appointment;
 
-        const clientDisplayName = appointment.clientName || appointment.user?.name || 'Desconocido';
-
-        await this.googleCalendarService.createEvent({
-            summary: 'Cita con cliente',
-            startDateTime,
-            endDateTime,
-            price: appointment.service.price,
-            duration: appointment.service.duration,
-            client: clientDisplayName,
-            service: appointment.service.title || 'Sin título',
+        return this.prismaService.appointment.update({
+            where: { id: appointment.id },
+            data: { googleEventId },
+            include: { user: { select: userPublicSelect }, service: true },
         });
-
-        return appointment;
     }
 
     async updateAppointment(id: string, dto: AppointmentDto) {
-        const { date, startTime, endTime, serviceId, clientName } = dto;
+        const existing = await this.prismaService.appointment.findUnique({ where: { id } });
+        if (!existing) throw new NotFoundException('Cita no encontrada');
 
-        try {
-            const appointment = await this.prismaService.appointment.update({
-                where: { id },
-                data: {
-                    date,
-                    startTime,
-                    endTime,
-                    serviceId,
-                    clientName,
-                },
-                include: {
-                    service: true,
-                    user: true,
-                },
-            });
+        const service = await this.getServiceOrFail(dto.serviceId);
+        const endTime = this.computeEndTime(dto.startTime, service.duration);
+        await this.assertNoOverlap(dto.date, dto.startTime, endTime, id);
 
-            const startDateTime = `${appointment.date}T${appointment.startTime}`;
-            const endDateTime = `${appointment.date}T${appointment.endTime}`;
-            const clientDisplayName = appointment.clientName || appointment.user?.name || 'Desconocido';
+        const appointment = await this.prismaService.appointment.update({
+            where: { id },
+            data: {
+                date: dto.date,
+                startTime: dto.startTime,
+                endTime,
+                serviceId: service.id,
+                clientName: dto.clientName?.trim() || existing.clientName,
+            },
+            include: { service: true, user: { select: userPublicSelect } },
+        });
 
-            await this.googleCalendarService.updateEvent({
-                eventId: appointment.googleEventId || '',
-                summary: 'Cita con cliente',
-                startDateTime,
-                endDateTime,
-                price: appointment.service.price,
-                duration: appointment.service.duration,
-                client: clientDisplayName,
-                service: appointment.service.title || 'Sin título',
-            });
+        const googleEventId = await this.googleCalendarService.upsertEvent(
+            appointment.googleEventId, this.calendarData(appointment),
+        );
+        if (googleEventId === appointment.googleEventId) return appointment;
 
-            return appointment;
-        } catch (error) {
-            throw new BadRequestException('Error updating appointment');
-        }
+        return this.prismaService.appointment.update({
+            where: { id },
+            data: { googleEventId },
+            include: { service: true, user: { select: userPublicSelect } },
+        });
     }
-
 
     async getAppointments() {
         return this.prismaService.appointment.findMany({
-            include: {
-                service: true,
-                user: true
-            }
-        })
+            include: { service: true, user: { select: userPublicSelect } },
+            orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+        });
+    }
+
+    async getBusySlots(date: string) {
+        return this.prismaService.appointment.findMany({
+            where: { date },
+            select: { startTime: true, endTime: true },
+            orderBy: { startTime: 'asc' },
+        });
     }
 
     async getUserAppointments(userId: string) {
         return this.prismaService.appointment.findMany({
             where: { userId },
-            include: {
-                service: true,
-            }
-        })
+            include: { service: true },
+            orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+        });
     }
 
-    async deleteAppointment(id: string) {
-        try {
-            const appointment = await this.prismaService.appointment.findUnique({
-                where: { id },
-                select: { googleEventId: true },
-            });
+    async deleteAppointment(id: string, user: AuthUser) {
+        if (!id) throw new BadRequestException('Falta el id de la cita');
 
-            if (!appointment) {
-                throw new BadRequestException('Cita no encontrada');
+        const appointment = await this.prismaService.appointment.findUnique({ where: { id } });
+        if (!appointment) throw new NotFoundException('Cita no encontrada');
+
+        if (user.role !== 'admin') {
+            if (appointment.userId !== user.id) {
+                throw new ForbiddenException('No puedes cancelar citas de otros usuarios');
             }
-
-            if (appointment.googleEventId) {
-                await this.googleCalendarService.deleteEvent(
-                    appointment.googleEventId,
-                    'primexd214@gmail.com'
-                );
+            const now = nowInBusinessTimezone();
+            if (appointment.date < now.date || (appointment.date === now.date && appointment.startTime <= now.time)) {
+                throw new BadRequestException('No se pueden cancelar citas pasadas');
             }
-
-            await this.prismaService.appointment.delete({
-                where: { id },
-            });
-
-            return { success: true, message: 'Cita eliminada correctamente' };
-        } catch (error) {
-            console.error(error);
-            throw new BadRequestException('Error eliminando la cita');
         }
+
+        await this.googleCalendarService.deleteEvent(appointment.googleEventId);
+        await this.prismaService.appointment.delete({ where: { id } });
+
+        return { success: true, message: 'Cita eliminada correctamente' };
     }
 
+    /**
+     * Elimina las citas locales cuyo evento se borró en Google Calendar.
+     * Solo se comparan citas dentro de la ventana consultada para no borrar citas antiguas.
+     */
     async syncFromGoogle() {
-        const googleEvents = await this.googleCalendarService.listEvents();
-        const googleEventIds = googleEvents.map(ev => ev.id);
+        const timeMin = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const googleEventIds = await this.googleCalendarService.listEventIds(timeMin);
+        if (!googleEventIds) return { synced: false, removed: 0 };
 
+        const fromDate = timeMin.toISOString().slice(0, 10);
         const localAppointments = await this.prismaService.appointment.findMany({
-            where: { googleEventId: { not: null } },
-            select: { id: true, googleEventId: true }
+            where: { googleEventId: { not: null }, date: { gt: fromDate } },
+            select: { id: true, googleEventId: true },
         });
 
-        const toDelete = localAppointments.filter(
-            appt => !googleEventIds.includes(appt.googleEventId)
-        );
+        const toDelete = localAppointments
+            .filter(appt => !googleEventIds.has(appt.googleEventId!))
+            .map(appt => appt.id);
 
-        for (const appt of toDelete) {
-            await this.prismaService.appointment.delete({ where: { id: appt.id } });
+        if (toDelete.length) {
+            await this.prismaService.appointment.deleteMany({ where: { id: { in: toDelete } } });
         }
+        return { synced: true, removed: toDelete.length };
     }
 }
