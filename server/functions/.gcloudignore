@@ -1,0 +1,9 @@
+# Archivos que NO se suben a Cloud Build al desplegar con `gcloud run deploy --source .`
+# (el .env SÍ se sube: el Dockerfile lo copia a la imagen)
+.gcloudignore
+.git
+node_modules/
+lib/
+generated/
+*.tsbuildinfo
+*.log
