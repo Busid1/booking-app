@@ -99,6 +99,12 @@ model BusinessInfo {
   primaryColor      String?
   /// Horas mínimas de antelación para que un cliente cancele (0 = sin límite)
   cancellationHours Int      @default(0)
+  /// Visibilidad pública de cada dato de contacto
+  showAddress       Boolean  @default(true)
+  showPhone         Boolean  @default(true)
+  showEmail         Boolean  @default(true)
+  /// Calendario de Google donde se crean las citas (si un profesional no tiene el suyo)
+  googleCalendarId  String?
 }
 
 model TimeBlock {

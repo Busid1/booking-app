@@ -19,6 +19,12 @@ export interface BusinessInfoInterface extends SocialLinks {
     primaryColor?: string | null;
     /** Horas mínimas de antelación para cancelar (0 = sin límite) */
     cancellationHours?: number;
+    /** Visibilidad pública de cada dato de contacto */
+    showAddress?: boolean;
+    showPhone?: boolean;
+    showEmail?: boolean;
+    /** Calendario de Google de las citas (solo visible para el administrador) */
+    googleCalendarId?: string | null;
 }
 
 export interface PublicConfig {
@@ -26,5 +32,6 @@ export interface PublicConfig {
     payments: boolean;
     email: boolean;
     googleCalendar: boolean;
+    googleServiceAccountEmail?: string | null;
     timeZone: string;
 }

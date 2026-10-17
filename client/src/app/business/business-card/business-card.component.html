@@ -14,34 +14,23 @@
     </div>
 
     <ul class="mt-6 space-y-3">
-      <li>
-        <a [href]="mapsUrl() || null" target="_blank" rel="noopener"
-          class="flex items-center gap-4 rounded-2xl p-3 transition hover:bg-slate-50">
-          <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600"><i class="fas fa-location-dot"></i></span>
-          <span class="min-w-0">
-            <span class="block text-xs font-medium text-slate-500">Dirección</span>
-            <span class="block font-semibold text-slate-800">{{ info().address || 'Sin especificar' }}</span>
-          </span>
-        </a>
-      </li>
-      <li>
-        <a [href]="info().phone ? telUrl() : null" class="flex items-center gap-4 rounded-2xl p-3 transition hover:bg-slate-50">
-          <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-accent-50 text-accent-600"><i class="fas fa-phone"></i></span>
-          <span class="min-w-0">
-            <span class="block text-xs font-medium text-slate-500">Teléfono</span>
-            <span class="block font-semibold text-slate-800">{{ info().phone || 'Sin especificar' }}</span>
-          </span>
-        </a>
-      </li>
-      <li>
-        <a [href]="info().email ? 'mailto:' + info().email : null" class="flex items-center gap-4 rounded-2xl p-3 transition hover:bg-slate-50">
-          <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600"><i class="fas fa-envelope"></i></span>
-          <span class="min-w-0">
-            <span class="block text-xs font-medium text-slate-500">Email</span>
-            <span class="block truncate font-semibold text-slate-800">{{ info().email || 'Sin especificar' }}</span>
-          </span>
-        </a>
-      </li>
+      @for (item of contactItems(); track item.key) {
+        <li>
+          <a [href]="item.href || null" [attr.target]="item.key === 'address' ? '_blank' : null" rel="noopener"
+            class="flex items-center gap-4 rounded-2xl p-3 transition hover:bg-slate-50" [class.opacity-50]="!item.visible">
+            <span class="grid size-11 shrink-0 place-items-center rounded-xl {{ item.tone }}"><i class="fas {{ item.icon }}"></i></span>
+            <span class="min-w-0">
+              <span class="flex items-center gap-2 text-xs font-medium text-slate-500">
+                {{ item.label }}
+                @if (!item.visible) { <span class="badge bg-slate-100 px-2 py-0 text-[10px] text-slate-500"><i class="fas fa-eye-slash"></i> Oculto</span> }
+              </span>
+              <span class="block truncate font-semibold text-slate-800">{{ item.value || 'Sin especificar' }}</span>
+            </span>
+          </a>
+        </li>
+      } @empty {
+        <li class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Contacta con nosotros a través de nuestras redes sociales.</li>
+      }
     </ul>
 
     @if (socials().length) {
@@ -130,18 +119,37 @@
                 placeholder="Cuenta a tus clientes qué os hace especiales"></textarea>
             </div>
             <div class="sm:col-span-2">
-              <label class="label" for="bi-address">Dirección</label>
+              <div class="mb-1.5 flex items-center justify-between">
+                <label class="label mb-0" for="bi-address">Dirección</label>
+                <button type="button" class="flex items-center gap-1.5 text-xs font-semibold transition" (click)="form.showAddress = !form.showAddress"
+                  [class]="form.showAddress ? 'text-accent-700' : 'text-slate-400'" [attr.aria-pressed]="form.showAddress">
+                  <i class="fas" [class.fa-eye]="form.showAddress" [class.fa-eye-slash]="!form.showAddress"></i> {{ form.showAddress ? 'Visible' : 'Oculto' }}
+                </button>
+              </div>
               <input id="bi-address" name="address" class="input" [(ngModel)]="form.address" maxlength="200" />
             </div>
             <div>
-              <label class="label" for="bi-phone">Teléfono</label>
+              <div class="mb-1.5 flex items-center justify-between">
+                <label class="label mb-0" for="bi-phone">Teléfono</label>
+                <button type="button" class="flex items-center gap-1.5 text-xs font-semibold transition" (click)="form.showPhone = !form.showPhone"
+                  [class]="form.showPhone ? 'text-accent-700' : 'text-slate-400'" [attr.aria-pressed]="form.showPhone">
+                  <i class="fas" [class.fa-eye]="form.showPhone" [class.fa-eye-slash]="!form.showPhone"></i> {{ form.showPhone ? 'Visible' : 'Oculto' }}
+                </button>
+              </div>
               <input id="bi-phone" name="phone" type="tel" class="input" [(ngModel)]="form.phone" maxlength="40" />
             </div>
             <div>
-              <label class="label" for="bi-email">Email</label>
+              <div class="mb-1.5 flex items-center justify-between">
+                <label class="label mb-0" for="bi-email">Email</label>
+                <button type="button" class="flex items-center gap-1.5 text-xs font-semibold transition" (click)="form.showEmail = !form.showEmail"
+                  [class]="form.showEmail ? 'text-accent-700' : 'text-slate-400'" [attr.aria-pressed]="form.showEmail">
+                  <i class="fas" [class.fa-eye]="form.showEmail" [class.fa-eye-slash]="!form.showEmail"></i> {{ form.showEmail ? 'Visible' : 'Oculto' }}
+                </button>
+              </div>
               <input id="bi-email" name="email" type="email" class="input" [(ngModel)]="form.email" maxlength="120" />
               <p class="mt-1.5 text-xs text-slate-500">Aquí recibirás los avisos de nuevas reservas.</p>
             </div>
+            <p class="text-xs text-slate-500 sm:col-span-2"><i class="fas fa-eye-slash mr-1"></i> Los datos ocultos no se muestran en la web ni en los emails a clientes, pero se siguen guardando.</p>
           </div>
         }
 
@@ -218,6 +226,20 @@
                 <option [ngValue]="72">72 horas antes</option>
               </select>
               <p class="mt-1.5 text-xs text-slate-500">Pasado ese plazo, los clientes no podrán cancelar online y tendrán que llamarte. Tú siempre puedes cancelar desde el panel.</p>
+            </div>
+            <div>
+              <label class="label" for="bi-calendar">Calendario de Google <span class="font-normal text-slate-400">(opcional)</span></label>
+              <input id="bi-calendar" name="googleCalendarId" class="input" maxlength="200" [(ngModel)]="form.googleCalendarId"
+                placeholder="tu-email@gmail.com" />
+              <p class="mt-1.5 text-xs text-slate-500">Las citas se copiarán en este calendario (salvo las de profesionales con calendario propio). Déjalo vacío para no sincronizar.</p>
+              @if (store.config()?.googleServiceAccountEmail; as serviceEmail) {
+                <div class="mt-2 rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+                  En Google Calendar, comparte ese calendario con <strong class="select-all break-all text-slate-900">{{ serviceEmail }}</strong>
+                  y dale permiso para <strong>«Hacer cambios en eventos»</strong>.
+                </div>
+              } @else if (store.config() && !store.config()!.googleCalendar) {
+                <p class="mt-2 text-xs text-amber-700"><i class="fas fa-triangle-exclamation mr-1"></i> Falta configurar GOOGLE_SERVICE_ACCOUNT_JSON en el servidor.</p>
+              }
             </div>
           </div>
         }

@@ -20,6 +20,8 @@ export class PublicConfigController {
       payments: this.stripe.enabled,
       email: this.mail.enabled,
       googleCalendar: this.calendar.enabled,
+      /** Con este email hay que compartir el calendario de Google. */
+      googleServiceAccountEmail: this.calendar.serviceAccountEmail,
       timeZone: appConfig.timeZone,
     };
   }
