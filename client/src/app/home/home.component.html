@@ -36,8 +36,72 @@
     </section>
   }
 
+
+  @if (store.staff().length) {
+    <section class="mt-14">
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p class="eyebrow">Equipo</p>
+          <h2 class="mt-1 text-2xl font-extrabold sm:text-3xl">Elige a tu profesional</h2>
+        </div>
+      </div>
+      <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        @for (member of store.staff(); track member.id; let i = $index) {
+          <a [routerLink]="auth.isAdmin() ? '/panel/equipo' : ['/reservar', member.slug]"
+            class="card group flex animate-slide-up flex-col items-center p-6 text-center transition hover:-translate-y-1 hover:shadow-lift"
+            [style.animation-delay.ms]="i * 60">
+            <app-staff-avatar class="size-20 ring-4 ring-white shadow-soft transition group-hover:scale-105" [name]="member.name" [photo]="member.photo"
+              [color]="member.color" fontSize="1.4rem" />
+            <h3 class="mt-4 font-bold text-slate-900 group-hover:text-brand-700">{{ member.name }}</h3>
+            @if (member.rating) {
+              <p class="mt-1 flex items-center gap-1.5 text-xs text-slate-500"><app-stars [value]="member.rating" size="0.7rem" /> {{ member.rating }}</p>
+            }
+            @if (member.bio) {
+              <p class="mt-2 line-clamp-2 text-sm text-slate-500">{{ member.bio }}</p>
+            }
+            @if (!auth.isAdmin()) {
+              <span class="mt-4 text-sm font-semibold text-brand-600">Reservar con {{ member.name.split(' ')[0] }} <i class="fas fa-arrow-right ml-1 text-xs"></i></span>
+            }
+          </a>
+        }
+      </div>
+    </section>
+  }
+
+  @if (store.reviews().count) {
+    <section class="mt-14">
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p class="eyebrow">Opiniones</p>
+          <h2 class="mt-1 text-2xl font-extrabold sm:text-3xl">Lo que dicen nuestros clientes</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-4xl font-extrabold text-slate-900">{{ store.reviews().average }}</span>
+          <div>
+            <app-stars [value]="store.reviews().average ?? 0" size="1rem" />
+            <p class="text-xs text-slate-500">{{ store.reviews().count }} {{ store.reviews().count === 1 ? 'reseña verificada' : 'reseñas verificadas' }}</p>
+          </div>
+        </div>
+      </div>
+      @if (latestReviews().length) {
+        <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          @for (review of latestReviews(); track review.id; let i = $index) {
+            <figure class="card flex animate-slide-up flex-col p-5" [style.animation-delay.ms]="i * 60">
+              <app-stars [value]="review.rating" />
+              <blockquote class="mt-3 line-clamp-5 flex-1 text-slate-700">“{{ review.comment }}”</blockquote>
+              <figcaption class="mt-4 flex items-center justify-between gap-2 text-xs text-slate-500">
+                <span class="font-semibold text-slate-800">{{ review.authorName }}</span>
+                <span>{{ review.serviceTitle }}@if (review.staff) { · {{ review.staff.name.split(' ')[0] }} }</span>
+              </figcaption>
+            </figure>
+          }
+        </div>
+      }
+    </section>
+  }
+
   @if (!auth.isAdmin()) {
-    <section class="mt-14 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 to-indigo-800 p-8 text-white shadow-lift sm:p-12">
+    <section class="mt-14 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 to-brand-800 p-8 text-white shadow-lift sm:p-12">
       <div class="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
         <div>
           <h2 class="text-2xl font-extrabold text-white sm:text-3xl">¿Listo para tu próxima cita?</h2>

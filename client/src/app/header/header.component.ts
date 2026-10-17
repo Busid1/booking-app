@@ -5,6 +5,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../auth/auth.service';
 import { alerts } from '../shared/services/alerts';
+import { SharedService } from '../shared/services/shared.service';
 
 @Component({
   selector: 'app-header',
@@ -14,6 +15,7 @@ import { alerts } from '../shared/services/alerts';
 })
 export default class HeaderComponent {
   readonly auth = inject(AuthService);
+  readonly store = inject(SharedService);
   private router = inject(Router);
   private host = inject(ElementRef<HTMLElement>);
 

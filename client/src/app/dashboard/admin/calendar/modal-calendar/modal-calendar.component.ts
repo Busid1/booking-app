@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ModalComponent } from '../../../../shared/services/modal.component';
+import { StaffAvatarComponent } from '../../../../shared/services/staff-avatar.component';
 import { AppointmentInterface } from '../../../../shared/interfaces/appointment.interface';
 import { formatDuration, fromDateKey } from '../../../../shared/services/time.utils';
 
@@ -9,12 +10,13 @@ import { formatDuration, fromDateKey } from '../../../../shared/services/time.ut
   selector: 'app-modal-calendar',
   templateUrl: './modal-calendar.component.html',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, ModalComponent],
+  imports: [CurrencyPipe, DatePipe, ModalComponent, StaffAvatarComponent],
 })
 export class ModalCalendarComponent {
   @Input() open = false;
   @Input() appointment: AppointmentInterface | null = null;
   @Input() isDeleting = false;
+  @Input() readOnly = false;
 
   @Output() closeModal = new EventEmitter<void>();
   @Output() editAppointment = new EventEmitter<AppointmentInterface>();

@@ -1,33 +1,65 @@
 <div class="container-page">
-  <header class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-    <div class="animate-slide-up">
-      <p class="eyebrow">{{ auth.isAdmin() ? 'Gestión' : 'Reserva online' }}</p>
-      <h1 class="mt-1 text-3xl font-extrabold sm:text-4xl">Nuestros servicios</h1>
-      <p class="mt-2 max-w-xl text-slate-500">
-        @if (auth.isAdmin()) {
-          Crea, edita o elimina los servicios que tus clientes pueden reservar.
-        } @else {
-          Elige el servicio que necesitas y reserva tu cita en menos de un minuto.
+  @if (staffMember(); as member) {
+    <!-- Página de un profesional -->
+    <header class="card flex animate-slide-up flex-col items-center gap-5 p-6 text-center sm:flex-row sm:p-8 sm:text-left">
+      <app-staff-avatar class="size-24 ring-4 ring-white shadow-lift" [name]="member.name" [photo]="member.photo" [color]="member.color" fontSize="1.75rem" />
+      <div class="min-w-0 flex-1">
+        <p class="eyebrow">Reserva con</p>
+        <h1 class="mt-1 text-3xl font-extrabold">{{ member.name }}</h1>
+        @if (member.rating) {
+          <p class="mt-1.5 flex items-center justify-center gap-2 text-sm text-slate-500 sm:justify-start">
+            <app-stars [value]="member.rating" /> {{ member.rating }} · {{ member.reviewCount }} {{ member.reviewCount === 1 ? 'reseña' : 'reseñas' }}
+          </p>
         }
-      </p>
-    </div>
-
-    @if (store.services().length > 3) {
-      <div class="flex gap-2">
-        <div class="relative flex-1 md:w-64">
-          <i class="fas fa-magnifying-glass pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
-          <input type="search" class="input pl-10" placeholder="Buscar servicio…" aria-label="Buscar servicio"
-            [ngModel]="search()" (ngModelChange)="search.set($event)" />
-        </div>
-        <select class="input w-auto pr-9" aria-label="Ordenar servicios" [ngModel]="sort()" (ngModelChange)="sort.set($event)">
-          <option value="default">Destacados</option>
-          <option value="price-asc">Precio: menor a mayor</option>
-          <option value="price-desc">Precio: mayor a menor</option>
-          <option value="duration">Duración</option>
-        </select>
+        @if (member.bio) {
+          <p class="mt-3 max-w-2xl text-slate-600">{{ member.bio }}</p>
+        }
       </div>
-    }
-  </header>
+      <div class="flex flex-col gap-2">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="copyStaffLink()"><i class="fas fa-link"></i> Copiar enlace</button>
+        <a routerLink="/servicios" class="btn btn-ghost btn-sm">Ver todo el equipo</a>
+      </div>
+    </header>
+  } @else {
+    <header class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+      <div class="animate-slide-up">
+        <p class="eyebrow">{{ auth.isAdmin() ? 'Gestión' : 'Reserva online' }}</p>
+        <h1 class="mt-1 text-3xl font-extrabold sm:text-4xl">Nuestros servicios</h1>
+        <p class="mt-2 max-w-xl text-slate-500">
+          @if (auth.isAdmin()) {
+            Crea, edita, ordena o elimina los servicios que tus clientes pueden reservar.
+          } @else {
+            Elige el servicio que necesitas y reserva tu cita en menos de un minuto, sin necesidad de registrarte.
+          }
+        </p>
+      </div>
+
+      @if (store.services().length > 3) {
+        <div class="flex gap-2">
+          <div class="relative flex-1 md:w-64">
+            <i class="fas fa-magnifying-glass pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+            <input type="search" class="input pl-10" placeholder="Buscar servicio…" aria-label="Buscar servicio"
+              [ngModel]="search()" (ngModelChange)="search.set($event)" />
+          </div>
+          <select class="input w-auto pr-9" aria-label="Ordenar servicios" [ngModel]="sort()" (ngModelChange)="sort.set($event)">
+            <option value="default">Destacados</option>
+            <option value="price-asc">Precio: menor a mayor</option>
+            <option value="price-desc">Precio: mayor a menor</option>
+            <option value="duration">Duración</option>
+          </select>
+        </div>
+      }
+    </header>
+  }
+
+  @if (categories().length > 1) {
+    <nav class="mt-6 flex gap-2 overflow-x-auto pb-1" aria-label="Categorías">
+      <button type="button" class="chip shrink-0" [class.chip-active]="!category()" (click)="category.set(null)">Todos</button>
+      @for (cat of categories(); track cat) {
+        <button type="button" class="chip shrink-0" [class.chip-active]="category() === cat" (click)="category.set(cat)">{{ cat }}</button>
+      }
+    </nav>
+  }
 
   <section class="mt-8">
     @if (isLoading()) {
@@ -50,67 +82,92 @@
         <button type="button" class="btn btn-secondary" (click)="load()"><i class="fas fa-rotate-right"></i> Reintentar</button>
       </div>
     } @else {
-      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        @for (service of filteredServices(); track service.id; let i = $index) {
-          <article class="card group flex animate-slide-up flex-col overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-lift"
-            [style.animation-delay.ms]="i * 50">
-            <div class="relative h-48 overflow-hidden bg-gradient-to-br from-brand-100 to-accent-100">
-              @if (service.image) {
-                <img [src]="service.image" [alt]="service.title" loading="lazy"
-                  class="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-              } @else {
-                <div class="grid h-full place-items-center text-5xl text-brand-300"><i class="fas fa-spa"></i></div>
-              }
-              <span class="badge absolute left-3 top-3 bg-white/90 text-slate-700 shadow-sm backdrop-blur">
-                <i class="far fa-clock text-brand-500"></i> {{ formatDuration(service.duration) }}
-              </span>
-
-              @if (auth.isAdmin()) {
-                <div class="absolute right-3 top-3 flex gap-1.5">
-                  <button type="button" (click)="editingService.set(service)" aria-label="Editar servicio"
-                    class="grid size-9 place-items-center rounded-full bg-white/95 text-slate-700 shadow-sm transition hover:bg-brand-600 hover:text-white">
-                    <i class="fas fa-pen text-xs"></i>
-                  </button>
-                  <button type="button" (click)="handleDeleteService(service)" [disabled]="deletingId() === service.id" aria-label="Eliminar servicio"
-                    class="grid size-9 place-items-center rounded-full bg-white/95 text-rose-600 shadow-sm transition hover:bg-rose-600 hover:text-white">
-                    @if (deletingId() === service.id) { <span class="spinner size-3.5"></span> } @else { <i class="fas fa-trash-can text-xs"></i> }
-                  </button>
+      @for (group of groups(); track group.name) {
+        @if (group.name) {
+          <h2 class="mb-4 mt-10 text-xl font-extrabold first:mt-0">{{ group.name }}</h2>
+        }
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          @for (service of group.services; track service.id; let i = $index) {
+            <article class="card group flex animate-slide-up flex-col overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-lift"
+              [style.animation-delay.ms]="i * 50">
+              <div class="relative h-48 overflow-hidden bg-gradient-to-br from-brand-100 to-accent-100">
+                @if (service.image) {
+                  <img [src]="service.image" [alt]="service.title" loading="lazy"
+                    class="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                } @else {
+                  <div class="grid h-full place-items-center text-5xl text-brand-300"><i class="fas fa-spa"></i></div>
+                }
+                <div class="absolute left-3 top-3 flex flex-wrap gap-1.5">
+                  <span class="badge bg-white/90 text-slate-700 shadow-sm backdrop-blur">
+                    <i class="far fa-clock text-brand-500"></i> {{ formatDuration(service.duration) }}
+                  </span>
+                  @if (service.deposit && store.config()?.payments) {
+                    <span class="badge bg-white/90 text-slate-700 shadow-sm backdrop-blur">
+                      <i class="fas fa-credit-card text-brand-500"></i> Señal {{ service.deposit | currency: 'EUR' }}
+                    </span>
+                  }
                 </div>
-              }
-            </div>
 
-            <div class="flex flex-1 flex-col p-5">
-              <div class="flex items-start justify-between gap-3">
-                <h2 class="text-lg font-bold leading-snug">{{ service.title }}</h2>
-                <span class="shrink-0 text-lg font-extrabold text-brand-700">{{ service.price | currency: 'EUR' }}</span>
+                @if (auth.isAdmin()) {
+                  <div class="absolute right-3 top-3 flex gap-1.5">
+                    @if (sort() === 'default' && !category() && !search()) {
+                      <button type="button" (click)="move(service, -1)" [disabled]="reordering()" aria-label="Subir"
+                        class="grid size-9 place-items-center rounded-full bg-white/95 text-slate-700 shadow-sm transition hover:bg-slate-900 hover:text-white">
+                        <i class="fas fa-arrow-up text-xs"></i>
+                      </button>
+                      <button type="button" (click)="move(service, 1)" [disabled]="reordering()" aria-label="Bajar"
+                        class="grid size-9 place-items-center rounded-full bg-white/95 text-slate-700 shadow-sm transition hover:bg-slate-900 hover:text-white">
+                        <i class="fas fa-arrow-down text-xs"></i>
+                      </button>
+                    }
+                    <button type="button" (click)="editingService.set(service)" aria-label="Editar servicio"
+                      class="grid size-9 place-items-center rounded-full bg-white/95 text-slate-700 shadow-sm transition hover:bg-brand-600 hover:text-white">
+                      <i class="fas fa-pen text-xs"></i>
+                    </button>
+                    <button type="button" (click)="handleDeleteService(service)" [disabled]="deletingId() === service.id" aria-label="Eliminar servicio"
+                      class="grid size-9 place-items-center rounded-full bg-white/95 text-rose-600 shadow-sm transition hover:bg-rose-600 hover:text-white">
+                      @if (deletingId() === service.id) { <span class="spinner size-3.5"></span> } @else { <i class="fas fa-trash-can text-xs"></i> }
+                    </button>
+                  </div>
+                }
               </div>
-              @if (service.description) {
-                <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-500">{{ service.description }}</p>
-              }
 
-              @if (!auth.isAdmin()) {
-                <div class="mt-auto pt-5">
-                  <button type="button" class="btn btn-primary w-full" (click)="book(service)">
-                    <i class="fas fa-calendar-plus"></i> Reservar cita
-                  </button>
+              <div class="flex flex-1 flex-col p-5">
+                <div class="flex items-start justify-between gap-3">
+                  <h3 class="text-lg font-bold leading-snug">{{ service.title }}</h3>
+                  <span class="shrink-0 text-lg font-extrabold text-brand-700">{{ service.price | currency: 'EUR' }}</span>
                 </div>
-              }
-            </div>
-          </article>
-        } @empty {
-          @if (!auth.isAdmin()) {
-            <div class="card col-span-full flex flex-col items-center gap-3 p-12 text-center">
-              <span class="grid size-14 place-items-center rounded-full bg-slate-100 text-xl text-slate-400"><i class="fas fa-magnifying-glass"></i></span>
-              <h2 class="text-lg font-bold">{{ search() ? 'Sin resultados' : 'Aún no hay servicios' }}</h2>
-              <p class="text-sm text-slate-500">{{ search() ? 'Prueba con otra búsqueda.' : 'Vuelve pronto para ver nuestras novedades.' }}</p>
-            </div>
-          }
-        }
+                @if (service.description) {
+                  <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-500">{{ service.description }}</p>
+                }
+                @if (!staffMember() && staffNames(service)) {
+                  <p class="mt-2 text-xs font-medium text-slate-400"><i class="fas fa-user-group mr-1"></i> {{ staffNames(service) }}</p>
+                }
 
-        @if (auth.isAdmin()) {
-          <app-admin-buttons />
-        }
-      </div>
+                @if (!auth.isAdmin()) {
+                  <div class="mt-auto pt-5">
+                    <button type="button" class="btn btn-primary w-full" (click)="book(service)">
+                      <i class="fas fa-calendar-plus"></i> Reservar cita
+                    </button>
+                  </div>
+                }
+              </div>
+            </article>
+          } @empty {
+            @if (!auth.isAdmin()) {
+              <div class="card col-span-full flex flex-col items-center gap-3 p-12 text-center">
+                <span class="grid size-14 place-items-center rounded-full bg-slate-100 text-xl text-slate-400"><i class="fas fa-magnifying-glass"></i></span>
+                <h2 class="text-lg font-bold">{{ search() ? 'Sin resultados' : 'Aún no hay servicios' }}</h2>
+                <p class="text-sm text-slate-500">{{ search() ? 'Prueba con otra búsqueda.' : 'Vuelve pronto para ver nuestras novedades.' }}</p>
+              </div>
+            }
+          }
+
+          @if (auth.isAdmin() && $last) {
+            <app-admin-buttons />
+          }
+        </div>
+      }
     }
   </section>
 </div>
@@ -118,5 +175,6 @@
 @if (auth.isAdmin()) {
   <app-update-service [open]="!!editingService()" [service]="editingService()" (closeModal)="editingService.set(null)" />
 } @else {
-  <app-booking [open]="!!bookingService()" [service]="bookingService()" (closed)="bookingService.set(null)" />
+  <app-booking [open]="!!bookingService()" [service]="bookingService()" [preselectedStaffId]="staffMember()?.id ?? null"
+    (closed)="bookingService.set(null)" />
 }

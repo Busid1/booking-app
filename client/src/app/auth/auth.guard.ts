@@ -22,3 +22,11 @@ export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   return auth.isLoggedIn() ? inject(Router).createUrlTree(['/']) : true;
 };
+
+/** Administradores y trabajadores (para el panel de agenda). */
+export const staffGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (!auth.isLoggedIn()) return router.createUrlTree(['/auth/login'], { queryParams: { returnUrl: state.url } });
+  return auth.isAdmin() || auth.isStaff() ? true : router.createUrlTree(['/']);
+};

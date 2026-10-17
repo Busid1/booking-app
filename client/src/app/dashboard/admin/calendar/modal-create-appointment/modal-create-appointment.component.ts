@@ -11,9 +11,12 @@ import { alerts } from '../../../../shared/services/alerts';
 
 interface AppointmentForm {
   serviceId: string;
+  staffId: string;
   date: string;
   startTime: string;
   clientName: string;
+  clientEmail: string;
+  clientPhone: string;
 }
 
 /** Formulario (modal) para crear o editar citas desde el panel de administración. */
@@ -36,7 +39,10 @@ export class ModalCreateAppointmentComponent implements OnChanges {
   @Output() closeModal = new EventEmitter<void>();
 
   readonly isSaving = signal(false);
-  readonly form = signal<AppointmentForm>({ serviceId: '', date: '', startTime: '', clientName: '' });
+  readonly form = signal<AppointmentForm>({ serviceId: '', staffId: '', date: '', startTime: '', clientName: '', clientEmail: '', clientPhone: '' });
+
+  /** Profesionales que pueden realizar el servicio elegido. */
+  readonly staffOptions = computed(() => this.store.staffForService(this.form().serviceId || undefined));
   readonly minDate = todayKey();
 
   readonly selectedService = computed(() => this.store.services().find(s => s.id === this.form().serviceId) ?? null);
@@ -46,12 +52,13 @@ export class ModalCreateAppointmentComponent implements OnChanges {
     return service && start ? addMinutes(start, service.duration) : '';
   });
 
-  /** Aviso (no bloqueante) si la cita queda fuera del horario del negocio. */
+  /** Aviso (no bloqueante) si la cita queda fuera del horario del negocio o del profesional. */
   readonly outsideHours = computed(() => {
-    const { date, startTime } = this.form();
+    const { date, startTime, staffId } = this.form();
     const end = this.endTime();
     if (!date || !startTime || !end) return false;
-    const day = this.store.weekSchedule()[mondayBasedDay(date)];
+    const staff = this.store.staff().find(s => s.id === staffId);
+    const day = (staff?.schedule ?? this.store.weekSchedule())[mondayBasedDay(date)];
     return day.isClosed || !day.timeBlocks.some(b => b.openTime <= startTime && end <= b.closeTime);
   });
 
@@ -62,11 +69,15 @@ export class ModalCreateAppointmentComponent implements OnChanges {
   ngOnChanges() {
     if (!this.open) return;
     if (!this.store.servicesLoaded()) this.store.loadAllServices().catch(() => undefined);
+    if (!this.store.staffLoaded()) this.store.loadStaff().catch(() => undefined);
 
     const a = this.appointment;
     this.form.set(a
-      ? { serviceId: a.serviceId, date: a.date, startTime: a.startTime, clientName: a.clientName || a.user?.name || '' }
-      : { serviceId: '', date: this.date || todayKey(), startTime: this.time, clientName: '' });
+      ? {
+          serviceId: a.serviceId, staffId: a.staffId ?? '', date: a.date, startTime: a.startTime,
+          clientName: a.clientName || a.user?.name || '', clientEmail: a.clientEmail ?? '', clientPhone: a.clientPhone ?? '',
+        }
+      : { serviceId: '', staffId: '', date: this.date || todayKey(), startTime: this.time, clientName: '', clientEmail: '', clientPhone: '' });
   }
 
   patch(changes: Partial<AppointmentForm>) {
@@ -79,6 +90,7 @@ export class ModalCreateAppointmentComponent implements OnChanges {
     if (!f.date) return 'Selecciona una fecha';
     if (!f.startTime) return 'Indica la hora de inicio';
     if (!f.clientName.trim()) return 'Indica el nombre del cliente';
+    if (f.clientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.clientEmail.trim())) return 'El email no es válido';
     if (toMinutes(this.endTime()) <= toMinutes(f.startTime)) return 'La cita no puede terminar después de medianoche';
     if (!this.isEdit && isPast(f.date, f.startTime)) return 'No se pueden crear citas en el pasado';
     return null;
@@ -92,7 +104,14 @@ export class ModalCreateAppointmentComponent implements OnChanges {
     }
 
     const f = this.form();
-    const payload = { ...f, clientName: f.clientName.trim(), endTime: this.endTime() };
+    const payload = {
+      ...f,
+      staffId: f.staffId || (this.store.staff().length ? 'any' : null),
+      clientName: f.clientName.trim(),
+      clientEmail: f.clientEmail.trim(),
+      clientPhone: f.clientPhone.trim(),
+      endTime: this.endTime(),
+    };
     this.isSaving.set(true);
     try {
       if (this.appointment?.id) {

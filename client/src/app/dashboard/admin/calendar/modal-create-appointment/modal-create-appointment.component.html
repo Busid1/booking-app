@@ -11,12 +11,37 @@
       </select>
     </div>
 
+    @if (store.staff().length) {
+      <div>
+        <label class="label" for="ap-staff">Profesional</label>
+        <select id="ap-staff" name="staffId" class="input" [ngModel]="form().staffId" (ngModelChange)="patch({ staffId: $event })">
+          <option value="">Asignar automáticamente</option>
+          @for (member of staffOptions(); track member.id) {
+            <option [value]="member.id">{{ member.name }}</option>
+          }
+        </select>
+      </div>
+    }
+
     <div>
       <label class="label" for="ap-client">Cliente</label>
       <div class="relative">
         <i class="fas fa-user pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
         <input id="ap-client" name="clientName" class="input pl-10" placeholder="Nombre del cliente" maxlength="80"
           [ngModel]="form().clientName" (ngModelChange)="patch({ clientName: $event })" required />
+      </div>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label class="label" for="ap-email">Email <span class="font-normal text-slate-400">(opcional)</span></label>
+        <input id="ap-email" name="clientEmail" type="email" class="input" maxlength="120" placeholder="Para enviarle la confirmación"
+          [ngModel]="form().clientEmail" (ngModelChange)="patch({ clientEmail: $event })" />
+      </div>
+      <div>
+        <label class="label" for="ap-phone">Teléfono <span class="font-normal text-slate-400">(opcional)</span></label>
+        <input id="ap-phone" name="clientPhone" type="tel" class="input" maxlength="20"
+          [ngModel]="form().clientPhone" (ngModelChange)="patch({ clientPhone: $event })" />
       </div>
     </div>
 
@@ -40,7 +65,7 @@
     @if (outsideHours()) {
       <div class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-800">
         <i class="fas fa-triangle-exclamation mt-0.5"></i>
-        <span>La cita queda fuera del horario de atención. Como administrador puedes guardarla igualmente.</span>
+        <span>La cita queda fuera del horario de atención{{ form().staffId ? ' de este profesional' : '' }}. Como administrador puedes guardarla igualmente.</span>
       </div>
     }
   </form>

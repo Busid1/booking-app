@@ -63,8 +63,9 @@ export class SchedulingService {
   }
 
   /**
-   * Trabajadores activos que pueden realizar un servicio. Si el servicio no tiene a nadie
-   * asignado, lo puede hacer cualquier trabajador activo.
+   * Trabajadores activos que pueden realizar un servicio:
+   * los que lo tienen asignado y los que no tienen ningún servicio marcado (hacen todos).
+   * Si nadie lo tiene asignado, cualquier trabajador activo puede hacerlo.
    */
   async eligibleStaff(serviceId: string): Promise<StaffWithHours[]> {
     const all = await this.prisma.staff.findMany({
@@ -73,7 +74,8 @@ export class SchedulingService {
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
     });
     const assigned = all.filter(s => s.services.some(sv => sv.id === serviceId));
-    return (assigned.length ? assigned : all).map(({ services, ...staff }) => staff);
+    const eligible = assigned.length ? all.filter(s => !s.services.length || assigned.includes(s)) : all;
+    return eligible.map(({ services, ...staff }) => staff);
   }
 
   /** Borra reservas pendientes de pago cuyo plazo ha caducado. */

@@ -43,6 +43,23 @@
         </a>
       </li>
     </ul>
+
+    @if (socials().length) {
+      <div class="mt-5 border-t border-slate-100 pt-5">
+        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Síguenos</p>
+        <ul class="flex flex-wrap gap-2">
+          @for (social of socials(); track social.key) {
+            <li>
+              <a [href]="social.url" target="_blank" rel="noopener" [attr.aria-label]="social.label" [title]="social.label + ': ' + social.value"
+                class="grid size-11 place-items-center rounded-xl text-lg text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                [style.background-color]="social.color">
+                <i [class]="social.icon"></i>
+              </a>
+            </li>
+          }
+        </ul>
+      </div>
+    }
   </section>
 
   <!-- Horario -->
@@ -89,33 +106,126 @@
 @if (auth.isAdmin()) {
   <app-business-hours [open]="isHoursOpen()" (closed)="isHoursOpen.set(false)" />
 
-  <app-modal [open]="isEditOpen()" (closed)="isEditOpen.set(false)" title="Información del negocio" subtitle="Estos datos se muestran en la portada.">
-    <form id="businessInfoForm" (ngSubmit)="saveInfo()" class="grid gap-4 sm:grid-cols-2">
-      <div class="sm:col-span-2">
-        <label class="label" for="bi-name">Nombre del negocio</label>
-        <input id="bi-name" name="name" class="input" [(ngModel)]="form.name" required maxlength="100" />
-      </div>
-      <div class="sm:col-span-2">
-        <label class="label" for="bi-description">Descripción</label>
-        <textarea id="bi-description" name="description" rows="4" class="input resize-none" [(ngModel)]="form.description" maxlength="2000"
-          placeholder="Cuenta a tus clientes qué os hace especiales"></textarea>
-      </div>
-      <div class="sm:col-span-2">
-        <label class="label" for="bi-address">Dirección</label>
-        <input id="bi-address" name="address" class="input" [(ngModel)]="form.address" maxlength="200" />
-      </div>
-      <div>
-        <label class="label" for="bi-phone">Teléfono</label>
-        <input id="bi-phone" name="phone" type="tel" class="input" [(ngModel)]="form.phone" maxlength="40" />
-      </div>
-      <div>
-        <label class="label" for="bi-email">Email</label>
-        <input id="bi-email" name="email" type="email" class="input" [(ngModel)]="form.email" maxlength="120" />
-      </div>
+  <app-modal [open]="isEditOpen()" (closed)="closeEdit()" size="lg" title="Información del negocio" subtitle="Estos datos se muestran en toda la web.">
+    <nav class="-mt-1 mb-6 flex gap-1 overflow-x-auto rounded-2xl bg-slate-100 p-1" aria-label="Secciones">
+      @for (t of tabs; track t.id) {
+        <button type="button" (click)="tab.set(t.id)" class="flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition"
+          [class]="tab() === t.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+          <i class="fas {{ t.icon }} text-xs"></i> {{ t.label }}
+        </button>
+      }
+    </nav>
+
+    <form id="businessInfoForm" (ngSubmit)="saveInfo()">
+      @switch (tab()) {
+        @case ('datos') {
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="sm:col-span-2">
+              <label class="label" for="bi-name">Nombre del negocio</label>
+              <input id="bi-name" name="name" class="input" [(ngModel)]="form.name" required maxlength="100" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="label" for="bi-description">Descripción</label>
+              <textarea id="bi-description" name="description" rows="4" class="input resize-none" [(ngModel)]="form.description" maxlength="2000"
+                placeholder="Cuenta a tus clientes qué os hace especiales"></textarea>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="label" for="bi-address">Dirección</label>
+              <input id="bi-address" name="address" class="input" [(ngModel)]="form.address" maxlength="200" />
+            </div>
+            <div>
+              <label class="label" for="bi-phone">Teléfono</label>
+              <input id="bi-phone" name="phone" type="tel" class="input" [(ngModel)]="form.phone" maxlength="40" />
+            </div>
+            <div>
+              <label class="label" for="bi-email">Email</label>
+              <input id="bi-email" name="email" type="email" class="input" [(ngModel)]="form.email" maxlength="120" />
+              <p class="mt-1.5 text-xs text-slate-500">Aquí recibirás los avisos de nuevas reservas.</p>
+            </div>
+          </div>
+        }
+
+        @case ('redes') {
+          <p class="mb-4 text-sm text-slate-500">Escribe tu usuario o pega el enlace completo. Deja vacías las que no uses.</p>
+          <div class="grid gap-3 sm:grid-cols-2">
+            @for (network of networks; track network.key) {
+              <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-2 pr-3 transition focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100">
+                <span class="grid size-10 shrink-0 place-items-center rounded-xl text-white" [style.background-color]="network.color">
+                  <i [class]="network.icon"></i>
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-[11px] font-semibold uppercase tracking-wide text-slate-400">{{ network.label }}</span>
+                  <input [name]="network.key" [attr.name]="network.key" [attr.aria-label]="network.label" class="w-full border-0 bg-transparent p-0 text-sm text-slate-800 placeholder:text-slate-300 focus:ring-0"
+                    [placeholder]="network.placeholder" maxlength="200" [(ngModel)]="form[network.key]" />
+                </span>
+              </label>
+            }
+          </div>
+        }
+
+        @case ('marca') {
+          <div class="space-y-6">
+            <div>
+              <span class="label">Logo</span>
+              <div class="flex items-center gap-4">
+                <div class="grid size-20 place-items-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                  @if (info().logo) {
+                    <img [src]="info().logo" alt="Logo" class="h-full w-full object-contain p-1.5" />
+                  } @else {
+                    <i class="fas fa-image text-2xl text-slate-300"></i>
+                  }
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label class="btn btn-secondary btn-sm cursor-pointer">
+                    @if (isUploadingLogo()) { <span class="spinner size-3.5"></span> Subiendo… } @else { <i class="fas fa-upload"></i> Subir logo }
+                    <input type="file" accept="image/*" class="sr-only" (change)="uploadLogo($event)" />
+                  </label>
+                  @if (info().logo) {
+                    <button type="button" class="btn btn-ghost btn-sm text-rose-600" (click)="removeLogo()">Quitar</button>
+                  }
+                </div>
+              </div>
+              <p class="mt-2 text-xs text-slate-500">Se muestra en la cabecera en lugar del logo de Bookly. Mejor PNG con fondo transparente.</p>
+            </div>
+
+            <div>
+              <span class="label">Color principal</span>
+              <div class="flex flex-wrap items-center gap-2">
+                @for (c of brandPresets; track c) {
+                  <button type="button" class="size-9 rounded-full ring-offset-2 transition hover:scale-110" [style.background-color]="c"
+                    [class.ring-2]="form.primaryColor === c" [class.ring-slate-900]="form.primaryColor === c" (click)="previewColor(c)"
+                    [attr.aria-label]="'Color ' + c"></button>
+                }
+                <input type="color" name="primaryColor" class="size-9 cursor-pointer rounded-full border-0 p-0" [ngModel]="form.primaryColor"
+                  (ngModelChange)="previewColor($event)" aria-label="Color personalizado" />
+              </div>
+              <p class="mt-2 text-xs text-slate-500">Se aplica a botones, enlaces y detalles de toda la web y de los emails. Verás una vista previa al instante.</p>
+            </div>
+          </div>
+        }
+
+        @case ('reservas') {
+          <div class="space-y-4">
+            <div>
+              <label class="label" for="bi-cancel">Antelación mínima para cancelar</label>
+              <select id="bi-cancel" name="cancellationHours" class="input" [(ngModel)]="form.cancellationHours">
+                <option [ngValue]="0">Sin límite: hasta la hora de la cita</option>
+                <option [ngValue]="2">2 horas antes</option>
+                <option [ngValue]="6">6 horas antes</option>
+                <option [ngValue]="12">12 horas antes</option>
+                <option [ngValue]="24">24 horas antes</option>
+                <option [ngValue]="48">48 horas antes</option>
+                <option [ngValue]="72">72 horas antes</option>
+              </select>
+              <p class="mt-1.5 text-xs text-slate-500">Pasado ese plazo, los clientes no podrán cancelar online y tendrán que llamarte. Tú siempre puedes cancelar desde el panel.</p>
+            </div>
+          </div>
+        }
+      }
     </form>
 
     <div modal-footer class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4 sm:px-6">
-      <button type="button" class="btn btn-secondary" (click)="isEditOpen.set(false)">Cancelar</button>
+      <button type="button" class="btn btn-secondary" (click)="closeEdit()">Cancelar</button>
       <button type="submit" form="businessInfoForm" class="btn btn-primary" [disabled]="isSaving()">
         @if (isSaving()) { <span class="spinner size-4"></span> Guardando… } @else { <i class="fas fa-floppy-disk"></i> Guardar cambios }
       </button>

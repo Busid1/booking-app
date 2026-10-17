@@ -7,6 +7,9 @@ export function buildServiceFormData(service: ServiceInterface): FormData {
   formData.append('price', String(service.price));
   formData.append('duration', String(service.duration));
   formData.append('description', service.description?.trim() ?? '');
+  formData.append('category', service.category?.trim() ?? '');
+  formData.append('deposit', service.deposit ? String(service.deposit) : '0');
+  if (service.staffIds) formData.append('staffIds', JSON.stringify(service.staffIds));
   if (service.image instanceof File) formData.append('image', service.image);
   return formData;
 }

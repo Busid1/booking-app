@@ -9,6 +9,7 @@
             <div class="h-4 w-1/2 animate-pulse rounded-lg bg-white/20"></div>
           </div>
         } @else {
+          <div class="flex flex-wrap items-center gap-2">
           @if (store.openStatus().label) {
             <span class="badge w-fit animate-slide-up backdrop-blur"
               [class]="store.openStatus().open ? 'bg-accent-500/90 text-white' : 'bg-white/15 text-white ring-1 ring-white/30'">
@@ -21,6 +22,12 @@
               {{ store.openStatus().label }}
             </span>
           }
+          @if (store.reviews().count) {
+            <span class="badge w-fit bg-white/15 text-white ring-1 ring-white/30 backdrop-blur">
+              <i class="fas fa-star text-amber-300"></i> {{ store.reviews().average }} · {{ store.reviews().count }} reseñas
+            </span>
+          }
+          </div>
           <h1 class="mt-4 max-w-2xl animate-slide-up text-4xl font-extrabold leading-tight text-white [animation-delay:60ms] sm:text-5xl">
             {{ store.businessInfo().name || 'Bienvenido' }}
           </h1>

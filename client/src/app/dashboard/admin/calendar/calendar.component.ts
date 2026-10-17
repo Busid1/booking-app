@@ -1,4 +1,4 @@
-import { Component, computed, EventEmitter, inject, Output, signal } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { FullCalendarModule } from '@fullcalendar/angular';
 import { CalendarOptions, EventClickArg, EventInput } from '@fullcalendar/core';
 import esLocale from '@fullcalendar/core/locales/es';
@@ -23,6 +23,15 @@ export const SERVICE_COLORS = ['#4f46e5', '#059669', '#d97706', '#db2777', '#089
 export class CalendarComponent {
   private store = inject(SharedService);
 
+  /** Solo mostrar citas de este profesional (null = todas). */
+  @Input() set staffFilter(value: string | null) {
+    this.filter.set(value);
+  }
+  /** Sin creación de citas al pulsar un día (vista de trabajador). */
+  @Input() readOnly = false;
+
+  private readonly filter = signal<string | null>(null);
+
   @Output() createAt = new EventEmitter<{ date: string; time: string }>();
   @Output() selectAppointment = new EventEmitter<AppointmentInterface>();
 
@@ -35,20 +44,24 @@ export class CalendarComponent {
     return map;
   });
 
-  private readonly events = computed<EventInput[]>(() =>
-    this.store.appointments().map(app => {
-      const color = this.serviceColor().get(app.serviceId) ?? SERVICE_COLORS[0];
+  private readonly events = computed<EventInput[]>(() => {
+    const byStaff = this.store.staff().length > 0;
+    const filter = this.filter();
+    return this.store.appointments()
+      .filter(app => !filter || app.staffId === filter)
+      .map(app => {
+      const color = (byStaff && app.staff?.color) || this.serviceColor().get(app.serviceId) || SERVICE_COLORS[0];
       return {
         id: app.id,
-        title: `${app.clientName || app.user?.name || 'Cliente'} · ${app.service?.title ?? 'Cita'}`,
+        title: `${app.clientName || app.user?.name || 'Cliente'} · ${app.service?.title ?? 'Cita'}${byStaff && app.staff && !filter ? ` (${app.staff.name.split(' ')[0]})` : ''}`,
         start: `${app.date}T${app.startTime}`,
         end: `${app.date}T${app.endTime}`,
         backgroundColor: color,
         borderColor: color,
         extendedProps: { appointment: app },
       };
-    }),
-  );
+    });
+  });
 
   /** Resalta el horario de apertura en las vistas semanal y diaria. */
   private readonly businessHours = computed(() =>
@@ -85,6 +98,7 @@ export class CalendarComponent {
   }));
 
   private handleDateClick(arg: DateClickArg) {
+    if (this.readOnly) return;
     const date = toDateKey(arg.date);
     if (date < todayKey()) return;
     const time = arg.allDay ? '' : toTimeString(arg.date.getHours() * 60 + arg.date.getMinutes());

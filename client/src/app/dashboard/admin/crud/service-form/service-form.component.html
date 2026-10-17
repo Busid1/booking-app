@@ -56,6 +56,42 @@
       }
     </div>
 
+    <div class="grid gap-5 sm:grid-cols-2">
+      <div>
+        <label class="label" for="sf-category">Categoría <span class="font-normal text-slate-400">(opcional)</span></label>
+        <input id="sf-category" name="category" class="input" maxlength="60" list="sf-categories" [(ngModel)]="form.category"
+          placeholder="Ej. Corte, Color, Barba…" />
+        <datalist id="sf-categories">
+          @for (cat of categories(); track cat) { <option [value]="cat"></option> }
+        </datalist>
+      </div>
+      <div>
+        <label class="label" for="sf-deposit">Señal online <span class="font-normal text-slate-400">(opcional)</span></label>
+        <div class="relative">
+          <input id="sf-deposit" name="deposit" type="number" min="0" step="0.5" class="input pr-9" [(ngModel)]="form.deposit" placeholder="0" />
+          <span class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">€</span>
+        </div>
+        <p class="mt-1.5 text-xs text-slate-500">
+          @if (store.config()?.payments) { El cliente la paga con tarjeta al reservar. } @else { Requiere configurar Stripe en el servidor. }
+        </p>
+      </div>
+    </div>
+
+    @if (store.staff().length) {
+      <div>
+        <span class="label">Profesionales que lo realizan</span>
+        <div class="flex flex-wrap gap-2">
+          @for (member of store.staff(); track member.id) {
+            <button type="button" class="chip py-1.5" [class.chip-active]="form.staffIds?.includes(member.id)" (click)="toggleStaff(member.id)">
+              @if (form.staffIds?.includes(member.id)) { <i class="fas fa-check mr-1.5 text-xs"></i> }
+              {{ member.name }}
+            </button>
+          }
+        </div>
+        <p class="mt-1.5 text-xs text-slate-500">Si no marcas a nadie, lo puede realizar cualquier profesional.</p>
+      </div>
+    }
+
     <div>
       <label class="label" for="sf-description">Descripción <span class="font-normal text-slate-400">(opcional)</span></label>
       <textarea id="sf-description" name="description" rows="3" class="input resize-none" [(ngModel)]="form.description" maxlength="1000"

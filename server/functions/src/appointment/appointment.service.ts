@@ -437,7 +437,7 @@ export class AppointmentService {
             status: a.status,
             clientName: this.clientNameOf(a),
             service: { id: a.service.id, title: a.service.title, price: a.service.price, duration: a.service.duration, image: a.service.image },
-            staff: a.staff ? { id: a.staff.id, name: a.staff.name, photo: a.staff.photo } : null,
+            staff: a.staff ? { id: a.staff.id, name: a.staff.name, photo: a.staff.photo, color: a.staff.color } : null,
             depositPaid: a.depositPaid,
             cancellationHours,
             canCancel: a.status === 'pending_payment' || (minutes > 0 && (cancellationHours === 0 || minutes >= cancellationHours * 60)),

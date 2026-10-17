@@ -9,6 +9,13 @@ import { ModalComponent } from '../../shared/services/modal.component';
 import { BusinessInfoInterface } from '../../shared/interfaces/business-info.interface';
 import { DAY_NAMES, mondayBasedDay } from '../../shared/services/time.utils';
 import { alerts } from '../../shared/services/alerts';
+import { activeSocials, SOCIAL_NETWORKS } from '../../shared/services/social-links';
+import { applyBrandColor, isValidHex } from '../../shared/services/theme';
+
+const BRAND_PRESETS = ['#4f46e5', '#0f766e', '#be123c', '#c2410c', '#7c3aed', '#0369a1', '#a16207', '#0f172a'];
+
+type InfoForm = Omit<BusinessInfoInterface, 'images' | 'logo'>;
+type Tab = 'datos' | 'redes' | 'marca' | 'reservas';
 
 /** Tarjetas de contacto y horario del negocio, con edición para el administrador. */
 @Component({
@@ -31,17 +38,78 @@ export default class BusinessCardComponent {
     this.info().address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(this.info().address)}` : '',
   );
   readonly telUrl = computed(() => `tel:${this.info().phone.replace(/[^\d+]/g, '')}`);
+  readonly socials = computed(() => activeSocials(this.info()));
+  readonly networks = SOCIAL_NETWORKS;
+  readonly brandPresets = BRAND_PRESETS;
 
   // Edición de información
   readonly isEditOpen = signal(false);
   readonly isSaving = signal(false);
   readonly isHoursOpen = signal(false);
-  form: Omit<BusinessInfoInterface, 'images'> = { name: '', description: '', address: '', phone: '', email: '' };
+  readonly isUploadingLogo = signal(false);
+  readonly tab = signal<Tab>('datos');
+  readonly tabs: { id: Tab; label: string; icon: string }[] = [
+    { id: 'datos', label: 'Datos', icon: 'fa-store' },
+    { id: 'redes', label: 'Redes sociales', icon: 'fa-hashtag' },
+    { id: 'marca', label: 'Marca', icon: 'fa-palette' },
+    { id: 'reservas', label: 'Reservas', icon: 'fa-calendar-check' },
+  ];
+  form: InfoForm = { name: '', description: '', address: '', phone: '', email: '' };
+  private originalColor: string | null | undefined;
 
   openEdit() {
-    const { name, description, address, phone, email } = this.info();
-    this.form = { name, description, address, phone, email };
+    const { images, logo, ...rest } = this.info();
+    this.form = {
+      ...rest,
+      primaryColor: rest.primaryColor || '#4f46e5',
+      cancellationHours: rest.cancellationHours ?? 0,
+      ...Object.fromEntries(SOCIAL_NETWORKS.map(n => [n.key, rest[n.key] ?? ''])),
+    };
+    this.originalColor = rest.primaryColor;
+    this.tab.set('datos');
     this.isEditOpen.set(true);
+  }
+
+  closeEdit() {
+    applyBrandColor(this.originalColor); // deshace la vista previa del color
+    this.isEditOpen.set(false);
+  }
+
+  previewColor(color: string) {
+    this.form.primaryColor = color;
+    if (isValidHex(color)) applyBrandColor(color);
+  }
+
+  async uploadLogo(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
+      alerts.warning('Selecciona una imagen de menos de 5 MB');
+      return;
+    }
+    this.isUploadingLogo.set(true);
+    try {
+      await firstValueFrom(this.api.uploadLogo(file));
+      await this.store.loadBusinessInfo();
+      applyBrandColor(this.form.primaryColor);
+      alerts.success('Logo actualizado');
+    } catch (error) {
+      alerts.error(error, 'No se ha podido subir el logo');
+    } finally {
+      this.isUploadingLogo.set(false);
+    }
+  }
+
+  async removeLogo() {
+    try {
+      await firstValueFrom(this.api.removeLogo());
+      await this.store.loadBusinessInfo();
+      applyBrandColor(this.form.primaryColor);
+    } catch (error) {
+      alerts.error(error, 'No se ha podido quitar el logo');
+    }
   }
 
   async saveInfo() {
@@ -51,8 +119,13 @@ export default class BusinessCardComponent {
     }
     this.isSaving.set(true);
     try {
-      await firstValueFrom(this.api.saveBusinessInfo(this.form));
+      await firstValueFrom(this.api.saveBusinessInfo({
+        ...this.form,
+        primaryColor: isValidHex(this.form.primaryColor) ? this.form.primaryColor : '',
+        cancellationHours: Number(this.form.cancellationHours) || 0,
+      }));
       await this.store.loadBusinessInfo();
+      this.originalColor = this.store.businessInfo().primaryColor;
       alerts.success('Información actualizada');
       this.isEditOpen.set(false);
     } catch (error) {
