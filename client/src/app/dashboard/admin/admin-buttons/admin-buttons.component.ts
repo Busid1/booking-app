@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
-import { Modal } from 'flowbite';
+import { Component, signal } from '@angular/core';
 import { CreateServiceComponent } from '../crud/create-service/create-service.component';
 
+/** Tarjeta "Añadir servicio" del grid de servicios (solo administrador). */
 @Component({
   selector: 'app-admin-buttons',
   standalone: true,
@@ -9,28 +9,5 @@ import { CreateServiceComponent } from '../crud/create-service/create-service.co
   templateUrl: './admin-buttons.component.html',
 })
 export class AdminButtonsComponent {
-  private modal: Modal | null = null;
-
-  ngAfterViewInit(): void {
-    const createServiceModalElement = document.getElementById('createServiceModal');
-
-    if (createServiceModalElement) {
-      this.modal = new Modal(createServiceModalElement)
-    }
-    else {
-      console.error('Modal element not found in the DOM');
-    }
-  }
-
-  handleActiveModal() {
-    if (this.modal) {
-      this.modal.show();
-    } else {
-      console.error('Modal not initialized.');
-    }
-  }
-
-  handleCloseModal() {
-    this.modal?.hide();
-  }
+  readonly isOpen = signal(false);
 }

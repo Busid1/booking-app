@@ -1,26 +1,24 @@
-import { Injectable } from '@angular/core';
-import { CanActivate, CanMatch, Router } from '@angular/router';
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from './auth.service';
 
-@Injectable({
-  providedIn: 'root'
-})
-export class AuthGuard implements CanActivate, CanMatch {
-  constructor(private authService: AuthService, private router: Router) { }
+/** Requiere sesión iniciada; si no, redirige al login recordando la ruta solicitada. */
+export const authGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(AuthService);
+  if (auth.isLoggedIn()) return true;
+  return inject(Router).createUrlTree(['/auth/login'], { queryParams: { returnUrl: state.url } });
+};
 
-  canActivate(): boolean {
-    if (!this.authService.isLoggedIn()) {
-      this.router.navigate(['/']);
-      return false;
-    }
-    return true;
-  }
+/** Solo administradores. */
+export const adminGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (!auth.isLoggedIn()) return router.createUrlTree(['/auth/login'], { queryParams: { returnUrl: state.url } });
+  return auth.isAdmin() ? true : router.createUrlTree(['/']);
+};
 
-  canMatch(): boolean {
-    if (!this.authService.isLoggedIn()) {
-      this.router.navigate(['/']);
-      return false;
-    }
-    return true;
-  }
-}
+/** Evita que un usuario con sesión vuelva a login/registro. */
+export const guestGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  return auth.isLoggedIn() ? inject(Router).createUrlTree(['/']) : true;
+};

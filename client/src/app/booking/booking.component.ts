@@ -1,237 +1,155 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, inject, Input, OnChanges, Output, signal, SimpleChanges } from '@angular/core';
+import { CurrencyPipe, DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { DatePickerComponent } from './datePicker/datePicker.component';
 import { AppointmentService } from './appointment.service';
-import { CommonModule } from '@angular/common';
-import { firstValueFrom } from 'rxjs';
-import { AppointmentInterface } from '../shared/interfaces/appointment.interface';
-import { ServiceInterface } from '../shared/interfaces/service.interface';
-import { toMinutes, toTimeString } from '../shared/services/time.utils';
-import { ServicesService } from '../dashboard/admin/crud/services.service';
+import { computeAvailableSlots } from './booking.utils';
+import { ModalComponent } from '../shared/services/modal.component';
 import { SharedService } from '../shared/services/shared.service';
-import { BusinessHoursInterface } from '../shared/interfaces/business-hours.interface';
-import Swal from 'sweetalert2';
-import { Modal } from 'flowbite';
+import { ServiceInterface } from '../shared/interfaces/service.interface';
+import { addDays, addMinutes, formatDuration, fromDateKey, mondayBasedDay, toDateKey } from '../shared/services/time.utils';
+import { alerts, getErrorMessage } from '../shared/services/alerts';
 
+type Step = 'datetime' | 'confirm' | 'done';
+
+/** Asistente de reserva en tres pasos: día y hora → confirmación → hecho. */
 @Component({
   selector: 'app-booking',
   templateUrl: './booking.component.html',
   standalone: true,
-  imports: [DatePickerComponent, CommonModule]
+  imports: [DatePickerComponent, ModalComponent, CurrencyPipe, DatePipe, RouterLink],
 })
+export class BookingComponent implements OnChanges {
+  private appointmentService = inject(AppointmentService);
+  readonly store = inject(SharedService);
 
-export class BookingComponent {
-  constructor(private appointmentService: AppointmentService, private servicesService: ServicesService, private sharedService: SharedService) { }
-  currentStep = 1;
-  selectedServiceId: string = ""
-  private modal: Modal | null = null;
-  isLoadingHours: boolean = false
+  @Input() open = false;
+  @Input() service: ServiceInterface | null = null;
+  @Output() closed = new EventEmitter<void>();
 
-  appointmentData: AppointmentInterface = {
-    date: '',
-    startTime: '',
-    endTime: '',
-    serviceId: '',
-    clientName: ''
-  };
+  readonly step = signal<Step>('datetime');
+  readonly selectedDate = signal<string | null>(null);
+  readonly selectedTime = signal<string | null>(null);
+  readonly slots = signal<string[]>([]);
+  readonly isLoadingSlots = signal(false);
+  readonly isSubmitting = signal(false);
+  readonly formatDuration = formatDuration;
 
-  selectedServiceData: ServiceInterface = {
-    title: '', price: 0, duration: 0, description: '', image: ''
-  };
+  private requestId = 0;
+  private resetId = 0;
 
-  appointmentsAvailable: string[] = [];
-  dateAppointment: string | null = null;
-  dateHourAppointment: string | null = null;
-
-  nextStep() {
-    if (this.currentStep === 1) {
-      if (!this.appointmentData.date) return this.showWarning('Por favor, selecciona una fecha');
-      if (!this.appointmentsAvailable.length) return this.showWarning('No hay horas disponibles para la fecha seleccionada');
-      if (!this.appointmentData.startTime) return this.showWarning('Por favor, selecciona una hora');
+  ngOnChanges(changes: SimpleChanges) {
+    if ((changes['open'] || changes['service']) && this.open && this.service) {
+      this.reset();
     }
-
-    if (this.currentStep < 2) this.currentStep++;
   }
 
-  showWarning(message: string) {
-    Swal.fire({
-      title: message,
-      icon: 'warning',
-      confirmButtonText: 'Ok',
-      confirmButtonColor: '#22c55e'
-    });
-  }
+  private async reset() {
+    const resetId = ++this.resetId;
+    this.step.set('datetime');
+    this.selectedTime.set(null);
+    this.slots.set([]);
+    this.selectedDate.set(null);
 
-  prevStep() {
-    this.currentStep = 1
-  }
-
-  isLoading: boolean = false;
-
-  async handleReserveAppointment(event: Event) {
-    event.preventDefault();
-    const token = localStorage.getItem("authToken") || "";
-
-    if (!token) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'No autorizado',
-        text: 'Debes iniciar sesión para reservar una cita',
-        confirmButtonText: 'Ok',
-        confirmButtonColor: '#f87171',
-      });
-      return;
+    if (!this.store.hoursLoaded()) {
+      try {
+        await this.store.loadAllBusinessHours();
+      } catch (error) {
+        alerts.error(error, 'No se ha podido cargar el horario');
+        return;
+      }
     }
+    if (resetId === this.resetId) await this.selectFirstAvailableDate(resetId);
+  }
 
-    this.isLoading = true;
+  /** Busca el primer día (en las próximas 2 semanas) con huecos libres y lo preselecciona. */
+  private async selectFirstAvailableDate(resetId: number) {
+    const schedule = this.store.weekSchedule();
+    for (let i = 0; i < 14; i++) {
+      const date = addDays(new Date(), i);
+      if (schedule[mondayBasedDay(date)].isClosed) continue;
+      await this.onDateSelected(toDateKey(date));
+      if (this.slots().length || !this.open || resetId !== this.resetId) return;
+    }
+  }
+
+  get endTime(): string {
+    return this.selectedTime() && this.service ? addMinutes(this.selectedTime()!, this.service.duration) : '';
+  }
+
+  selectedDateObj(): Date | null {
+    return this.selectedDate() ? fromDateKey(this.selectedDate()!) : null;
+  }
+
+  /** Selección manual: cancela la preselección automática en curso. */
+  onUserDateSelected(date: string) {
+    this.resetId++;
+    this.onDateSelected(date);
+  }
+
+  private async onDateSelected(date: string) {
+    if (!this.service) return;
+    const id = ++this.requestId;
+    this.selectedDate.set(date);
+    this.selectedTime.set(null);
+    this.isLoadingSlots.set(true);
 
     try {
-      await firstValueFrom(this.appointmentService.createAppointment(this.appointmentData, token));
-      Swal.fire({
-        title: "Cita reservada correctamente",
-        confirmButtonText: "Ok",
-        confirmButtonColor: "#22c55e",
-      })
-      this.hideModal();
-      this.currentStep = 1;
-      this.appointmentData = {
-        date: '',
-        startTime: '',
-        endTime: '',
-        serviceId: '',
-        clientName: ''
-      };
+      const busy = await firstValueFrom(this.appointmentService.getAvailability(date));
+      if (id !== this.requestId) return; // respuesta obsoleta
+      const day = this.store.weekSchedule()[mondayBasedDay(date)];
+      this.slots.set(computeAvailableSlots(date, day, this.service.duration, busy));
     } catch (error) {
-      console.log(error)
+      if (id === this.requestId) {
+        this.slots.set([]);
+        alerts.error(error, 'No se ha podido consultar la disponibilidad');
+      }
     } finally {
-      this.isLoading = false;
+      if (id === this.requestId) this.isLoadingSlots.set(false);
     }
-  }
-
-  async onDateSelected(dateStr: string) {
-    this.dateAppointment = dateStr;
-    this.appointmentData.date = dateStr;
-    await this.loadAvailableSlots();
   }
 
   onHourSelected(hour: string) {
-    this.dateHourAppointment = hour;
-    const end = toTimeString(toMinutes(hour) + this.selectedServiceData.duration);
-    this.appointmentData.startTime = hour;
-    this.appointmentData.endTime = end;
+    this.resetId++;
+    this.selectedTime.set(hour);
   }
 
-  generateTimeSlots(businessHours: BusinessHoursInterface, serviceDurationMinutes: number): string[] {
-    if (businessHours.isClosed) return [];
+  goToConfirm() {
+    if (this.selectedDate() && this.selectedTime()) this.step.set('confirm');
+  }
 
-    const slots: string[] = [];
+  async confirm() {
+    if (!this.service?.id || !this.selectedDate() || !this.selectedTime() || this.isSubmitting()) return;
+    this.isSubmitting.set(true);
 
-    for (const block of businessHours.timeBlocks) {
-      const start = toMinutes(block.openTime);
-      const end = toMinutes(block.closeTime);
-
-      for (let time = start; time + serviceDurationMinutes <= end; time += serviceDurationMinutes) {
-        slots.push(toTimeString(time));
+    try {
+      await firstValueFrom(this.appointmentService.createAppointment({
+        date: this.selectedDate()!,
+        startTime: this.selectedTime()!,
+        endTime: this.endTime,
+        serviceId: this.service.id,
+      }));
+      this.step.set('done');
+      this.store.loadAllUserAppointments().catch(() => undefined);
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && (error.status === 409 || error.status === 400)) {
+        // El hueco ya no está disponible: refrescamos la disponibilidad.
+        alerts.warning('Ese hueco ya no está disponible', getErrorMessage(error));
+        this.step.set('datetime');
+        await this.onDateSelected(this.selectedDate()!);
+      } else {
+        alerts.error(error, 'No se ha podido reservar la cita');
       }
-    }
-
-    return slots;
-  }
-
-  async loadAvailableSlots() {
-    this.isLoadingHours = true;
-    const [hours, services, reservedAppointments] = await Promise.all([
-      firstValueFrom(this.servicesService.getBusinessHours()),
-      firstValueFrom(this.servicesService.getServices()),
-      firstValueFrom(this.appointmentService.getAppointments())
-    ]);
-
-    const selectedService = services.find(s => s.id === this.appointmentData.serviceId);
-    if (!selectedService) return;
-    this.selectedServiceData = selectedService;
-
-    const dayIndex = new Date(this.dateAppointment!).getDay();
-    const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-
-    const dayHours = hours.find(h => h.dayOfWeek === adjustedIndex);
-    if (!dayHours) return;
-
-    if (dayHours.isClosed) {
-          this.isLoadingHours = false;
-      this.appointmentsAvailable = [];
-      return;
-    }
-
-    const filterAppointments = reservedAppointments.filter(
-      a => a.date === this.appointmentData.date && a.serviceId === this.appointmentData.serviceId
-    );
-
-    const allSlots = this.generateTimeSlots(dayHours, selectedService.duration);
-
-    const reservedStartTimes = filterAppointments.map(a => toTimeString(toMinutes(a.startTime)));
-
-    const now = new Date();
-    const isToday =
-      this.appointmentData.date === now.toISOString().split('T')[0];
-
-    const availableSlots = allSlots.filter(slot => {
-      const normalizedSlot = toTimeString(toMinutes(slot));
-      const isReserved = reservedStartTimes.includes(normalizedSlot);
-
-      if (isReserved) return false;
-
-      if (isToday) {
-        const [slotH, slotM] = slot.split(':').map(Number);
-        const slotMinutes = slotH * 60 + slotM;
-        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
-        if (slotMinutes <= nowMinutes) {
-          return false;
-        }
-      }
-
-      return true;
-    });    
-
-    this.appointmentsAvailable = availableSlots;
-    this.isLoadingHours = false;
-  }
-
-  async ngOnInit() {
-    this.sharedService.selectedService$.subscribe(async id => {
-      if (!id) return;
-
-      this.selectedServiceId = id;
-      this.appointmentData.serviceId = id;
-
-      const today = new Date().toLocaleDateString("en-CA");
-
-      this.dateAppointment = today;
-      this.appointmentData.date = today;
-
-      await this.loadAvailableSlots();
-
-      if (!this.appointmentsAvailable.length) {
-        this.dateAppointment = null;
-        this.appointmentData.date = '';
-      }
-    });
-  }
-
-  ngAfterViewInit() {
-    const modalEl = document.getElementById('bookAppointmentModal');
-    if (modalEl) {
-      this.modal = new Modal(modalEl);
-    } else {
-      console.error('bookAppointmentModal no encontrado');
+    } finally {
+      this.isSubmitting.set(false);
     }
   }
 
-  showModal() {
-    this.modal?.show();
+  close() {
+    this.requestId++;
+    this.resetId++;
+    this.closed.emit();
   }
-
-  hideModal() {
-    this.modal?.hide();
-  }
-
-} 
+}

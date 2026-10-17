@@ -1,112 +1,54 @@
-<div id="readUpdateAppointmentModal" tabindex="-1" aria-hidden="true"
-  class="hidden fixed inset-0 z-50 justify-center items-center bg-black/30 p-4">
-  <div class="relative w-full max-w-md bg-white rounded-xl shadow-lg p-6">
-
-    <div class="flex justify-between items-center border-b pb-3 mb-4">
-      <h3 class="text-lg font-bold text-gray-800">
-        Información de la cita
-      </h3>
-      <button type="button" (click)="onClose()"
-        class="text-gray-400 hover:text-white hover:bg-red-600 w-8 h-8 rounded-lg flex items-center justify-center transition">
-        <i class="fas fa-times"></i>
-        <span class="sr-only">Cerrar modal</span>
-      </button>
-    </div>
-
+<app-modal [open]="open" (closed)="closeModal.emit()" title="Detalle de la cita" size="sm">
+  @if (appointment; as a) {
     <div class="space-y-4">
-      <div>
-        <h4 class="text-sm font-medium text-gray-500">Servicio</h4>
-        <ng-container *ngIf="isEditMode; else viewTitle">
-          <div>
-            <select name="service" [(ngModel)]="appointmentData.service" (change)="onServiceChange()"
-              class="bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5">
-              <option value="" disabled>Selecciona un servicio</option>
-              <option *ngFor="let service of services" [value]="service.id">
-                {{ service.title }} ({{ service.duration }} min)
-              </option>
-            </select>
+      <div class="flex items-center gap-4 rounded-2xl bg-brand-50 p-4">
+        <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-white text-lg text-brand-600 shadow-sm"><i class="fas fa-spa"></i></span>
+        <div class="min-w-0">
+          <p class="truncate font-bold text-slate-900">{{ a.service?.title ?? 'Servicio' }}</p>
+          <p class="text-sm text-brand-700">{{ a.service?.price | currency: 'EUR' }} · {{ formatDuration(a.service?.duration ?? 0) }}</p>
+        </div>
+      </div>
+
+      <dl class="divide-y divide-slate-100 text-sm">
+        <div class="flex items-center justify-between gap-4 py-3">
+          <dt class="flex items-center gap-2 text-slate-500"><i class="far fa-user w-4"></i> Cliente</dt>
+          <dd class="text-right font-semibold text-slate-900">{{ a.clientName || a.user?.name || 'Sin nombre' }}</dd>
+        </div>
+        @if (a.user?.email) {
+          <div class="flex items-center justify-between gap-4 py-3">
+            <dt class="flex items-center gap-2 text-slate-500"><i class="far fa-envelope w-4"></i> Cuenta</dt>
+            <dd class="truncate text-right font-medium text-slate-700"><a [href]="'mailto:' + a.user?.email" class="hover:text-brand-600">{{ a.user?.email }}</a></dd>
           </div>
-        </ng-container>
-        <ng-template #viewTitle>
-          <p class="text-base text-gray-800">
-            {{ specificDate.title }}
-          </p>
-        </ng-template>
-      </div>
-
-      <div>
-        <h4 class="text-sm font-medium text-gray-500">Precio</h4>
-        <ng-container *ngIf="isEditMode; else viewPrice">
-          <input type="number" [value]="selectedService?.price ?? specificDate.price" disabled readonly
-            class="bg-gray-100 border cursor-not-allowed border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
-        </ng-container>
-        <ng-template #viewPrice>
-          <p class="text-base text-gray-800">
-            {{ specificDate.price | currency: 'EUR' }}
-          </p>
-        </ng-template>
-      </div>
-
-      <div>
-        <h4 class="text-sm font-medium text-gray-500">Fecha</h4>
-        <ng-container *ngIf="isEditMode; else viewDate">
-          <input type="date" [value]="appointmentData.date" disabled
-            class="bg-gray-100 border cursor-not-allowed border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
-        </ng-container>
-        <ng-template #viewDate>
-          <p class="text-base text-gray-800">
-            {{ specificDate.dateDay | date: 'dd/MM/yyyy'}}
-          </p>
-        </ng-template>
-      </div>
-
-      <div>
-        <h4 class="text-sm font-medium text-gray-500">Hora</h4>
-        <ng-container *ngIf="isEditMode; else viewTime">
-          <div class="flex gap-2">
-            <input type="time" [(ngModel)]="appointmentData.startTime" name="startTime" (change)="onStartTimeChange()"
-              required class="bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
-            <input type="time" [(ngModel)]="appointmentData.endTime" name="endTime" required disabled
-              class="bg-gray-100 border cursor-not-allowed border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" readonly />
-          </div>
-        </ng-container>
-        <ng-template #viewTime>
-          <p class="text-base text-gray-800">
-            {{ specificDate.startTime }} - {{ specificDate.endTime }}
-          </p>
-        </ng-template>
-      </div>
-
-      <div>
-        <h4 class="text-sm font-medium text-gray-500">Cliente</h4>
-        <ng-container *ngIf="isEditMode; else viewClient">
-          <input type="text" [(ngModel)]="specificDate.clientName" (input)="handleInputChange('clientName', $event)"
-            class="bg-gray-100 border border-gray-300 text-gray-800 text-sm rounded-lg block w-full p-2.5" />
-        </ng-container>
-        <ng-template #viewClient>
-          <p class="text-base text-gray-800">
-            {{ specificDate.clientName }}
-          </p>
-        </ng-template>
-      </div>
+        }
+        <div class="flex items-center justify-between gap-4 py-3">
+          <dt class="flex items-center gap-2 text-slate-500"><i class="far fa-calendar w-4"></i> Fecha</dt>
+          <dd class="text-right font-semibold text-slate-900 first-letter:uppercase">{{ asDate(a.date) | date: "EEEE d 'de' MMMM" }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4 py-3">
+          <dt class="flex items-center gap-2 text-slate-500"><i class="far fa-clock w-4"></i> Hora</dt>
+          <dd class="text-right font-semibold text-slate-900">{{ a.startTime }} – {{ a.endTime }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4 py-3">
+          <dt class="flex items-center gap-2 text-slate-500"><i class="fab fa-google w-4"></i> Google Calendar</dt>
+          <dd class="text-right">
+            @if (a.googleEventId) {
+              <span class="badge bg-accent-50 text-accent-700"><i class="fas fa-check"></i> Sincronizada</span>
+            } @else {
+              <span class="badge bg-slate-100 text-slate-500">No sincronizada</span>
+            }
+          </dd>
+        </div>
+      </dl>
     </div>
+  }
 
-    <div class="mt-6 flex justify-end gap-3">
-      <button *ngIf="isEditMode" (click)="handleSubmit($event)" type="button"
-        class="inline-flex items-center gap-2 text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 transition">
-        <i class="fas fa-save"></i>
-        Guardar cambios
-      </button>
-      <button *ngIf="!isEditMode" (click)="onEditAppointment()" type="button"
-        class="inline-flex items-center gap-2 text-white bg-orange-600 hover:bg-orange-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2 transition">
-        <i class="fas fa-pencil-alt"></i>
-        Editar cita
-      </button>
-      <button (click)="onDeleteAppointment()" type="button"
-        class="inline-flex items-center gap-2 text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2 transition">
-        <i class="fas fa-trash-alt"></i>
-        Eliminar cita
-      </button>
-    </div>
+  <div modal-footer class="flex justify-between gap-2 border-t border-slate-100 px-5 py-4 sm:px-6">
+    <button type="button" class="btn btn-secondary text-rose-600 hover:border-rose-200 hover:bg-rose-50" [disabled]="isDeleting"
+      (click)="appointment && deleteAppointment.emit(appointment)">
+      @if (isDeleting) { <span class="spinner size-4"></span> } @else { <i class="fas fa-trash-can"></i> } Eliminar
+    </button>
+    <button type="button" class="btn btn-primary" (click)="appointment && editAppointment.emit(appointment)">
+      <i class="fas fa-pen"></i> Editar
+    </button>
   </div>
-</div>
+</app-modal>

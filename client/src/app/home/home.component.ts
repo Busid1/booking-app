@@ -1,27 +1,24 @@
-import { Component } from '@angular/core';
-import { ServicesComponent } from '../services/services.component';
+import { Component, computed, inject, OnInit } from '@angular/core';
+import { CurrencyPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { BusinessComponent } from '../business/business.component';
-import { CommonModule } from '@angular/common';
-import { AppointmentsComponent } from "../dashboard/user/appointments/appointments.component";
 import { AuthService } from '../auth/auth.service';
-import { ReviewAppointmentsComponent } from "../dashboard/admin/review-appointments/review-appointments.component";
+import { SharedService } from '../shared/services/shared.service';
+import { formatDuration } from '../shared/services/time.utils';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [BusinessComponent, ServicesComponent, CommonModule, AppointmentsComponent, ReviewAppointmentsComponent],
+  imports: [BusinessComponent, RouterLink, CurrencyPipe],
   templateUrl: './home.component.html',
 })
-export default class HomeComponent {
-  constructor(private authService: AuthService) { }
+export default class HomeComponent implements OnInit {
+  readonly auth = inject(AuthService);
+  readonly store = inject(SharedService);
+  readonly featured = computed(() => this.store.services().slice(0, 3));
+  readonly formatDuration = formatDuration;
 
-  activeTab: string = 'info';
-
-  setActiveTab(tab: string) {
-    this.activeTab = tab;
-  }
-
-  isAdmin(){
-    return this.authService.isAdmin()
+  ngOnInit() {
+    this.store.loadAllServices().catch(() => undefined);
   }
 }

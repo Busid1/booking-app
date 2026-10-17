@@ -1,52 +1,46 @@
 import { inject, Injectable } from '@angular/core';
-import { environment } from '../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AppointmentInterface } from '../shared/interfaces/appointment.interface';
+import { environment } from '../../environments/environment';
+import { AppointmentInterface, BusySlot } from '../shared/interfaces/appointment.interface';
 
-@Injectable({
-    providedIn: 'root'
-})
+export type AppointmentPayload = Pick<AppointmentInterface, 'date' | 'startTime' | 'serviceId'> & {
+    endTime?: string;
+    clientName?: string | null;
+};
 
+/** Cliente HTTP de citas. El token se añade automáticamente en el interceptor. */
+@Injectable({ providedIn: 'root' })
 export class AppointmentService {
-    protected http = inject(HttpClient);
+    private http = inject(HttpClient);
+    private api = environment.apiUrl;
 
-    createAppointment(appointmentData: AppointmentInterface, token: string): Observable<AppointmentInterface> {
-        return this.http.post<AppointmentInterface>(`${environment.apiUrl}/create-appointment`, appointmentData, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+    createAppointment(appointmentData: AppointmentPayload): Observable<AppointmentInterface> {
+        return this.http.post<AppointmentInterface>(`${this.api}/create-appointment`, appointmentData);
+    }
+
+    updateAppointment(id: string, appointmentData: AppointmentPayload): Observable<AppointmentInterface> {
+        return this.http.put<AppointmentInterface>(`${this.api}/update-appointment/${id}`, appointmentData);
     }
 
     getAppointments(): Observable<AppointmentInterface[]> {
-        return this.http.get<AppointmentInterface[]>(`${environment.apiUrl}/get-appointments`);
+        return this.http.get<AppointmentInterface[]>(`${this.api}/get-appointments`);
     }
 
-    getUserAppointments(): Observable<AppointmentInterface> {
-        return this.http.get<AppointmentInterface>(`${environment.apiUrl}/get-user-appointments`, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('authToken')}`
-            }
-        });
+    getUserAppointments(): Observable<AppointmentInterface[]> {
+        return this.http.get<AppointmentInterface[]>(`${this.api}/get-user-appointments`);
+    }
+
+    /** Franjas ocupadas de un día, sin datos personales. */
+    getAvailability(date: string): Observable<BusySlot[]> {
+        return this.http.get<BusySlot[]>(`${this.api}/availability`, { params: { date } });
     }
 
     deleteAppointment(id: string): Observable<void> {
-        return this.http.delete<void>(`${environment.apiUrl}/delete-appointment`, {
-            body: { id: id }
-        });
+        return this.http.delete<void>(`${this.api}/delete-appointment`, { body: { id } });
     }
 
-    syncFromGoogle(): Observable<void> {
-        return this.http.patch<void>(`${environment.apiUrl}/sync-from-google`, {});
+    syncFromGoogle(): Observable<{ synced: boolean; removed: number }> {
+        return this.http.patch<{ synced: boolean; removed: number }>(`${this.api}/sync-from-google`, {});
     }
-
-    updateAppointment(appointmentData: AppointmentInterface, token: string, id: string): Observable<AppointmentInterface>{
-        return this.http.put<AppointmentInterface>(`${environment.apiUrl}/update-appointment/${id}`, appointmentData, {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-    });
-    }
-
 }

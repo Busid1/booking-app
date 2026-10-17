@@ -1,12 +1,18 @@
-import { Routes } from "@angular/router";
+import { Routes } from '@angular/router';
+import { guestGuard } from './auth.guard';
 
 export default [
     {
-        path: "login",
-        loadComponent: () => import('./login/login.component')
+        path: 'login',
+        title: 'Iniciar sesión · Bookly',
+        canActivate: [guestGuard],
+        loadComponent: () => import('./login/login.component'),
     },
     {
-        path: "register",
-        loadComponent: () => import('./register/register.component')
+        path: 'register',
+        title: 'Crear cuenta · Bookly',
+        canActivate: [guestGuard],
+        loadComponent: () => import('./register/register.component'),
     },
- ] as Routes
+    { path: '', pathMatch: 'full', redirectTo: 'login' },
+] as Routes;

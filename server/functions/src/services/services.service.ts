@@ -1,71 +1,66 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ServiceDto } from '../dto/service.dto';
+import { GoogleCalendarService } from '../google-calendar/googleCalendar.service';
 
 @Injectable()
 export class ServicesService {
-    constructor(private readonly prismaService: PrismaService) { }
+    constructor(
+        private readonly prismaService: PrismaService,
+        private readonly googleCalendarService: GoogleCalendarService,
+    ) { }
+
     async createService(serviceDto: ServiceDto) {
         const { title, price, description, image, duration } = serviceDto;
-
         try {
-            const service = await this.prismaService.service.create({
+            return await this.prismaService.service.create({
                 data: {
-                    title,
-                    price: parseFloat(price as any),
-                    description,
-                    image,
-                    duration: parseInt(duration as any),
+                    title: title.trim(),
+                    price,
+                    duration: Math.round(duration),
+                    description: description?.trim() || null,
+                    image: image ?? null,
                 },
             });
-            return service;
         } catch (error) {
-            throw new BadRequestException('Error creating service');
+            throw new BadRequestException('Error al crear el servicio');
         }
     }
 
     async getServices() {
-        return await this.prismaService.service.findMany()
+        return this.prismaService.service.findMany({ orderBy: { createdAt: 'asc' } });
     }
 
     async getService(id: string) {
-        const service = await this.prismaService.service.findUnique({
-            where: { id },
-        });
-        if (!service) {
-            throw new BadRequestException('Service not found');
-        }
+        const service = await this.prismaService.service.findUnique({ where: { id } });
+        if (!service) throw new NotFoundException('Servicio no encontrado');
         return service;
     }
 
     async updateService(id: string, serviceDto: ServiceDto) {
         const { title, price, description, image, duration } = serviceDto;
-
-        try {
-            const service = await this.prismaService.service.update({
-                where: { id },
-                data: {
-                    title,
-                    price: parseFloat(price as any),
-                    description,
-                    image,
-                    duration: parseInt(duration as any),
-                },
-            });
-            return service;
-        } catch (error) {
-            console.log(error);
-            throw new BadRequestException('Error updating service');
-        }
+        await this.getService(id);
+        return this.prismaService.service.update({
+            where: { id },
+            data: {
+                title: title.trim(),
+                price,
+                duration: Math.round(duration),
+                description: description?.trim() || null,
+                ...(image !== undefined ? { image } : {}),
+            },
+        });
     }
 
+    /** Borra el servicio y sus citas (en cascada), limpiando también los eventos de Google Calendar. */
     async deleteService(id: string) {
-        try {
-            await this.prismaService.service.delete({
-                where: { id },
-            });
-        } catch (error) {
-            throw new BadRequestException('Error deleting service');
-        }
+        await this.getService(id);
+        const appointments = await this.prismaService.appointment.findMany({
+            where: { serviceId: id, googleEventId: { not: null } },
+            select: { googleEventId: true },
+        });
+        await Promise.all(appointments.map(a => this.googleCalendarService.deleteEvent(a.googleEventId)));
+
+        return this.prismaService.service.delete({ where: { id } });
     }
 }

@@ -1,156 +1,124 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { google } from 'googleapis';
 
+export interface CalendarEventData {
+    summary: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    price: number;
+    duration: number;
+    client: string;
+    service: string;
+}
+
+/**
+ * Sincronización opcional con Google Calendar. Si no hay credenciales configuradas,
+ * todas las operaciones son no-op y la app sigue funcionando con normalidad.
+ * Los errores de Google nunca bloquean la gestión de citas: solo se registran.
+ */
 @Injectable()
 export class GoogleCalendarService {
-    private calendar: any;
-    private calendarId = 'primexd214@gmail.com';
+    private readonly logger = new Logger(GoogleCalendarService.name);
+    private calendar: any = null;
+    private readonly calendarId = process.env.GOOGLE_CALENDAR_ID || 'primexd214@gmail.com';
+    private readonly timeZone = process.env.BUSINESS_TIMEZONE || 'Europe/Madrid';
 
     constructor() {
         const jsonCredentials = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
         if (!jsonCredentials) {
-            throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON no está definida en las variables de entorno');
+            this.logger.warn('GOOGLE_SERVICE_ACCOUNT_JSON no está definida: sincronización con Google Calendar desactivada');
+            return;
         }
 
-        const credentials = JSON.parse(jsonCredentials);
-
-        const auth = new google.auth.GoogleAuth({
-            credentials,
-            scopes: ['https://www.googleapis.com/auth/calendar'],
-        });
-
-        this.calendar = google.calendar({ version: 'v3', auth });
+        try {
+            const auth = new google.auth.GoogleAuth({
+                credentials: JSON.parse(jsonCredentials),
+                scopes: ['https://www.googleapis.com/auth/calendar'],
+            });
+            this.calendar = google.calendar({ version: 'v3', auth });
+        } catch (err) {
+            this.logger.error('Credenciales de Google Calendar inválidas; sincronización desactivada', err as Error);
+        }
     }
 
-    async createEvent({
-        summary,
-        startDateTime,
-        endDateTime,
-        price,
-        duration,
-        client,
-        service,
-    }: {
-        summary: string;
-        startDateTime: string;
-        endDateTime: string;
-        price: number;
-        duration: number;
-        client: string;
-        service: string;
-    }) {
-        const fixDateTime = (dt: string) => dt.length === 16 ? dt + ':00' : dt;
+    get enabled(): boolean {
+        return this.calendar !== null;
+    }
 
-        const event = {
-            summary,
-            description: `Cliente: ${client}\nServicio: ${service}\nPrecio: ${price}€\nDuración: ${duration} min`,
-            start: {
-                dateTime: fixDateTime(startDateTime),
-                timeZone: 'Europe/Madrid',
-            },
-            end: {
-                dateTime: fixDateTime(endDateTime),
-                timeZone: 'Europe/Madrid',
-            },
+    private buildEvent(data: CalendarEventData) {
+        return {
+            summary: data.summary,
+            description: `Cliente: ${data.client}\nServicio: ${data.service}\nPrecio: ${data.price}€\nDuración: ${data.duration} min`,
+            start: { dateTime: `${data.date}T${data.startTime}:00`, timeZone: this.timeZone },
+            end: { dateTime: `${data.date}T${data.endTime}:00`, timeZone: this.timeZone },
         };
+    }
 
+    /** Crea el evento y devuelve su id, o null si no se pudo crear. */
+    async createEvent(data: CalendarEventData): Promise<string | null> {
+        if (!this.enabled) return null;
         try {
             const res = await this.calendar.events.insert({
                 calendarId: this.calendarId,
-                resource: event,
+                requestBody: this.buildEvent(data),
             });
-            return res.data;
+            return res.data.id ?? null;
         } catch (err) {
-            console.error(err);
-            throw new InternalServerErrorException(
-                'Error al crear evento en Google Calendar',
-            );
+            this.logger.error('Error al crear evento en Google Calendar', err as Error);
+            return null;
         }
     }
 
-    async updateEvent(
-        {
-            summary,
-            eventId,
-            startDateTime,
-            endDateTime,
-            price,
-            duration,
-            client,
-            service,
-        }
-        : 
-        {
-            summary: string;
-            eventId: string;
-            startDateTime: string;
-            endDateTime: string;
-            price: number;
-            duration: number;
-            client: string;
-            service: string;
-        }
-    ) {
-        const fixDateTime = (dt: string) => dt.length === 16 ? dt + ':00' : dt;
-
-        const event = {
-            summary,
-            description: `Cliente: ${client}\nServicio: ${service}\nPrecio: ${price}€\nDuración: ${duration} min`,
-            start: {
-                dateTime: fixDateTime(startDateTime),
-                timeZone: 'Europe/Madrid',
-            },
-            end: {
-                dateTime: fixDateTime(endDateTime),
-                timeZone: 'Europe/Madrid',
-            },
-        };
+    /** Actualiza el evento; si no existe (o no había id) lo crea. Devuelve el id resultante. */
+    async upsertEvent(eventId: string | null, data: CalendarEventData): Promise<string | null> {
+        if (!this.enabled) return eventId;
+        if (!eventId) return this.createEvent(data);
         try {
             const res = await this.calendar.events.update({
                 calendarId: this.calendarId,
                 eventId,
-                resource: event,
-            })
-
-            res.data
-        } catch (error) {
-            console.log(error)
-        }
-    }
-
-    async deleteEvent(googleEventId: string, calendarId: string) {
-        try {
-            await this.calendar.events.delete({
-                calendarId,
-                eventId: googleEventId,
+                requestBody: this.buildEvent(data),
             });
-            return { success: true };
-        } catch (err) {
-            console.error('Error al borrar el evento de Google Calendar', err);
-            throw new InternalServerErrorException('Error al borrar evento en Google Calendar');
+            return res.data.id ?? eventId;
+        } catch (err: any) {
+            if (err?.code === 404 || err?.code === 410) return this.createEvent(data);
+            this.logger.error('Error al actualizar evento en Google Calendar', err as Error);
+            return eventId;
         }
     }
 
-    async listEvents(timeMin?: string, timeMax?: string) {
-        const params: any = {
-            calendarId: this.calendarId,
-            maxResults: 2500,
-            singleEvents: true,
-            orderBy: 'startTime',
-        };
-
-        if (timeMin) params.timeMin = timeMin;
-        else params.timeMin = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(); // última semana
-
-        if (timeMax) params.timeMax = timeMax;
-
+    async deleteEvent(eventId: string | null | undefined): Promise<void> {
+        if (!this.enabled || !eventId) return;
         try {
-            const res = await this.calendar.events.list(params);
-            return res.data.items || [];
-        } catch (err) {
-            console.error(err);
-            throw new InternalServerErrorException('Error al listar eventos de Google Calendar');
+            await this.calendar.events.delete({ calendarId: this.calendarId, eventId });
+        } catch (err: any) {
+            if (err?.code === 404 || err?.code === 410) return;
+            this.logger.error('Error al borrar evento de Google Calendar', err as Error);
         }
     }
 
+    /** Devuelve los ids de los eventos a partir de timeMin, o null si no se pudo consultar. */
+    async listEventIds(timeMin: Date): Promise<Set<string> | null> {
+        if (!this.enabled) return null;
+        const ids = new Set<string>();
+        let pageToken: string | undefined;
+        try {
+            do {
+                const res = await this.calendar.events.list({
+                    calendarId: this.calendarId,
+                    timeMin: timeMin.toISOString(),
+                    maxResults: 2500,
+                    singleEvents: true,
+                    pageToken,
+                });
+                for (const ev of res.data.items ?? []) if (ev.id) ids.add(ev.id);
+                pageToken = res.data.nextPageToken ?? undefined;
+            } while (pageToken);
+            return ids;
+        } catch (err) {
+            this.logger.error('Error al listar eventos de Google Calendar', err as Error);
+            return null;
+        }
+    }
 }

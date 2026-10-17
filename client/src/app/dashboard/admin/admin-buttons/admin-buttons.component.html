@@ -1,9 +1,11 @@
-<button type="button" (click)="handleActiveModal()" class="flex w-full text-gray-800 border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex-wrap gap-3 items-center justify-center flex-col p-10 h-full bg-slate-100 rounded-xl">
-    <i class="fas fa-plus text-6xl"></i>
-    <div class="flex items-start justify-between mb-3">
-        <h3 class="text-xl font-semibold text-gray-800 group-hover:text-blue-600 transition-colors truncate">
-            Añadir servicio
-        </h3>
-    </div>
+<button type="button" (click)="isOpen.set(true)"
+  class="group flex h-full min-h-[18rem] w-full flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-slate-300 bg-white/50 p-8 text-slate-500 transition hover:border-brand-400 hover:bg-brand-50/60 hover:text-brand-700">
+  <span class="grid size-14 place-items-center rounded-2xl bg-white text-xl shadow-soft transition group-hover:scale-110 group-hover:bg-brand-600 group-hover:text-white">
+    <i class="fas fa-plus"></i>
+  </span>
+  <span class="text-center">
+    <span class="block text-lg font-bold">Añadir servicio</span>
+    <span class="text-sm">Crea un nuevo servicio reservable</span>
+  </span>
 </button>
-<app-create-service (closeModal)="handleCloseModal()"></app-create-service>
+<app-create-service [open]="isOpen()" (closeModal)="isOpen.set(false)" />

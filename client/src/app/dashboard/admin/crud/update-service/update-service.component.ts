@@ -1,98 +1,43 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { ServicesService } from '../services.service';
+import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { ServiceInterface } from '../../../../shared/interfaces/service.interface';
-import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import Swal from 'sweetalert2';
+import { ServicesService } from '../services.service';
 import { SharedService } from '../../../../shared/services/shared.service';
-import { ServiceFormComponent } from "../service-form/service-form.component";
+import { ServiceInterface } from '../../../../shared/interfaces/service.interface';
+import { ServiceFormComponent } from '../service-form/service-form.component';
+import { buildServiceFormData } from '../service-form.utils';
+import { alerts } from '../../../../shared/services/alerts';
 
 @Component({
   selector: 'app-update-service',
   standalone: true,
-  imports: [FormsModule, CommonModule, ServiceFormComponent],
+  imports: [ServiceFormComponent],
   template: `
-<div>
-  <app-service-form
-    [mode]="'update'"
-    [modalId]="'updateServiceModal'"
-    [serviceFormData]="serviceFormData"
-    [isSaving]="isSaving"
-    (close)="onClose()"
-    (submitForm)="handleSubmit($event)">
-  </app-service-form>
-<div>
-`,
+    <app-service-form mode="update" [open]="open" [service]="service" [isSaving]="isSaving()"
+      (close)="closeModal.emit()" (submitForm)="handleSubmit($event)" />
+  `,
 })
 export class UpdateServiceComponent {
-  constructor(
-    private servicesService: ServicesService,
-    private sharedService: SharedService
-  ) { }
+  private api = inject(ServicesService);
+  private store = inject(SharedService);
 
-  @Input() serviceFormData: ServiceInterface = {
-    id: '',
-    title: '',
-    price: 0,
-    duration: 0,
-    description: '',
-    image: null,
-  };
-
+  @Input() open = false;
+  @Input() service: ServiceInterface | null = null;
   @Output() closeModal = new EventEmitter<void>();
-  isSaving = false;
 
-  onClose() {
-    this.closeModal.emit();
-  }
+  readonly isSaving = signal(false);
 
-  async handleSubmit(serviceData: ServiceInterface) {        
-    if (!serviceData.title?.trim()) {
-      Swal.fire({ icon: 'warning', text: 'El nombre del servicio es obligatorio.' });
-      return;
-    }
-
-    if (!serviceData.price || serviceData.price <= 0) {
-      Swal.fire({ icon: 'warning', text: 'El precio debe ser mayor a 0.' });
-      return;
-    }
-
-    if (!serviceData.duration || serviceData.duration <= 0) {
-      Swal.fire({ icon: 'warning', text: 'La duración debe ser mayor a 0.' });
-      return;
-    }
-
-    this.isSaving = true;
-
-    const formData = new FormData();
-    formData.append('id', String(serviceData.id ?? ''));
-    formData.append('title', serviceData.title.trim());
-    formData.append('price', String(serviceData.price));
-    formData.append('duration', String(serviceData.duration));
-    formData.append('description', serviceData.description?.trim() ?? '');
-
-    if (serviceData.image instanceof File) {
-      formData.append('image', serviceData.image);
-    }
-
+  async handleSubmit(service: ServiceInterface) {
+    if (!service.id) return;
+    this.isSaving.set(true);
     try {
-      await firstValueFrom(
-        this.servicesService.updateService(serviceData.id!, formData)
-      );
-      await this.sharedService.loadAllServices();
-      Swal.fire({
-        title: 'Servicio actualizado correctamente',
-        icon: 'success',
-        confirmButtonText: 'Ok',
-        confirmButtonColor: '#22c55e',
-      });
-      this.onClose();
+      await firstValueFrom(this.api.updateService(service.id, buildServiceFormData(service)));
+      await this.store.loadAllServices();
+      alerts.success('Servicio actualizado');
+      this.closeModal.emit();
     } catch (error) {
-      console.error('Error actualizando servicio:', error);
-      Swal.fire({ icon: 'error', text: 'Error actualizando servicio. Intenta de nuevo.' });
+      alerts.error(error, 'No se ha podido actualizar el servicio');
     } finally {
-      this.isSaving = false;
+      this.isSaving.set(false);
     }
   }
 }

@@ -1,66 +1,77 @@
-<div [id]="modalId" tabindex="-1" aria-hidden="true"
-  class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 w-full h-full bg-black/50">
-  <div class="relative p-4 w-full max-w-xl">
-    <div class="relative p-4 bg-white rounded-lg shadow-md sm:p-6">
-      <div class="flex items-center justify-between pb-4 mb-4 border-b border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-800">
-          {{ mode === 'create' ? 'Crear servicio' : 'Editar servicio' }}
-        </h3>
-        <button type="button" (click)="onClose()"
-          class="text-gray-400 hover:text-white hover:bg-red-600 rounded-lg text-sm w-8 h-8 flex items-center justify-center transition">
-          <i class="fas fa-times"></i>
-          <span class="sr-only">Cerrar modal</span>
-        </button>
-      </div>
+<app-modal [open]="open" (closed)="close.emit()" [title]="mode === 'create' ? 'Nuevo servicio' : 'Editar servicio'"
+  [subtitle]="mode === 'create' ? 'Añade un servicio que tus clientes puedan reservar.' : service?.title ?? ''">
+  <form id="serviceForm" #f="ngForm" (ngSubmit)="onSubmit(f.valid)" class="grid gap-5" novalidate>
+    <label class="group relative flex h-44 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 transition hover:border-brand-400 hover:bg-brand-50">
+      @if (preview()) {
+        <img [src]="preview()" alt="Vista previa" class="absolute inset-0 h-full w-full object-cover" />
+        <span class="absolute inset-0 grid place-items-center bg-slate-900/40 text-sm font-semibold text-white opacity-0 transition group-hover:opacity-100">
+          <span><i class="fas fa-camera mr-1.5"></i> Cambiar imagen</span>
+        </span>
+      } @else {
+        <span class="flex flex-col items-center gap-2 text-slate-500">
+          <i class="fas fa-image text-2xl"></i>
+          <span class="text-sm font-semibold">Añadir imagen <span class="font-normal text-slate-400">(opcional)</span></span>
+          <span class="text-xs text-slate-400">PNG, JPG o WEBP · máx. 5 MB</span>
+        </span>
+      }
+      <input type="file" accept="image/*" class="sr-only" (change)="handleFileChange($event)" />
+    </label>
 
-      <form (submit)="onSubmit($event)" class="space-y-4">
-        <div *ngIf="serviceFormData" class="grid gap-4 grid-cols-2">
-          <div class="col-span-2">
-            <label class="block mb-1 text-sm font-medium text-gray-700">*Nombre del servicio</label>
-            <input (input)="handleInputChange('title', $event)" type="text" placeholder="Corte de pelo clásico..."
-              [(ngModel)]="serviceFormData.title" name="title" required
-              class="bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5">
-          </div>
-
-          <div>
-            <label class="block mb-1 text-sm font-medium text-gray-700">*Precio</label>
-            <input (input)="handleInputChange('price', $event)" type="number" placeholder="10€"
-              [(ngModel)]="serviceFormData.price" name="price" required
-              class="bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5">
-          </div>
-
-          <div>
-            <label class="block mb-1 text-sm font-medium text-gray-700">*Duración (min)</label>
-            <input (input)="handleInputChange('duration', $event)" type="number" placeholder="30"
-              [(ngModel)]="serviceFormData.duration" name="duration" required
-              class="bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5">
-          </div>
-
-          <div class="col-span-2">
-            <label class="block mb-1 text-sm font-medium text-gray-700">Descripción (opcional)</label>
-            <textarea (input)="handleInputChange('description', $event)" rows="3"
-              placeholder="Breve descripción del servicio" [(ngModel)]="serviceFormData.description" name="description"
-              class="bg-gray-50 border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"></textarea>
-          </div>
-
-          <div class="col-span-2">
-            <label class="block mb-1 text-sm font-medium text-gray-700">Imagen (opcional)</label>
-            <input (change)="handleFileChange($event)" type="file" accept="image/*" name="image"
-              class="block w-full text-xs text-gray-700 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
-          </div>
-        </div>
-
-        <button type="submit" [disabled]="isSaving"
-          class="w-full flex justify-center items-center gap-2 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 transition">
-          <ng-container *ngIf="!isSaving; else saving">
-            <i class="fas" [ngClass]="mode === 'create' ? 'fa-plus' : 'fa-save'"></i>
-            {{ mode === 'create' ? 'Crear servicio' : 'Guardar cambios' }}
-          </ng-container>
-          <ng-template #saving>
-            <i class="fas fa-spinner fa-spin"></i> Guardando…
-          </ng-template>
-        </button>
-      </form>
+    <div>
+      <label class="label" for="sf-title">Nombre del servicio</label>
+      <input id="sf-title" name="title" class="input" [(ngModel)]="form.title" #title="ngModel" required maxlength="100"
+        [class.input-error]="title.invalid && (title.touched || f.submitted)" placeholder="Ej. Corte de pelo clásico" />
+      @if (title.invalid && (title.touched || f.submitted)) {
+        <p class="field-error">El nombre es obligatorio.</p>
+      }
     </div>
+
+    <div class="grid gap-5 sm:grid-cols-2">
+      <div>
+        <label class="label" for="sf-price">Precio</label>
+        <div class="relative">
+          <input id="sf-price" name="price" type="number" min="0" step="0.5" class="input pr-9" [(ngModel)]="form.price" #price="ngModel" required
+            [class.input-error]="price.invalid && (price.touched || f.submitted)" />
+          <span class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">€</span>
+        </div>
+        @if (price.invalid && (price.touched || f.submitted)) {
+          <p class="field-error">Indica un precio válido.</p>
+        }
+      </div>
+      <div>
+        <label class="label" for="sf-duration">Duración (minutos)</label>
+        <input id="sf-duration" name="duration" type="number" min="5" max="720" step="5" class="input" [(ngModel)]="form.duration" #duration="ngModel" required
+          [class.input-error]="duration.invalid && (duration.touched || f.submitted)" />
+        @if (duration.invalid && (duration.touched || f.submitted)) {
+          <p class="field-error">Entre 5 y 720 minutos.</p>
+        }
+      </div>
+    </div>
+
+    <div class="-mt-2 flex flex-wrap gap-2">
+      @for (preset of durationPresets; track preset) {
+        <button type="button" class="chip px-2.5 py-1 text-xs" [class.chip-active]="form.duration === preset" (click)="form.duration = preset">
+          {{ preset }} min
+        </button>
+      }
+    </div>
+
+    <div>
+      <label class="label" for="sf-description">Descripción <span class="font-normal text-slate-400">(opcional)</span></label>
+      <textarea id="sf-description" name="description" rows="3" class="input resize-none" [(ngModel)]="form.description" maxlength="1000"
+        placeholder="Qué incluye, para quién es recomendable…"></textarea>
+    </div>
+  </form>
+
+  <div modal-footer class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4 sm:px-6">
+    <button type="button" class="btn btn-secondary" (click)="close.emit()">Cancelar</button>
+    <button type="submit" form="serviceForm" class="btn btn-primary" [disabled]="isSaving">
+      @if (isSaving) {
+        <span class="spinner size-4"></span> Guardando…
+      } @else {
+        <i class="fas" [class.fa-plus]="mode === 'create'" [class.fa-floppy-disk]="mode === 'update'"></i>
+        {{ mode === 'create' ? 'Crear servicio' : 'Guardar cambios' }}
+      }
+    </button>
   </div>
-</div>
+</app-modal>

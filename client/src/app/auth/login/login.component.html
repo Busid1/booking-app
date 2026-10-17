@@ -1,30 +1,58 @@
-<div class="max-sm:p-4">
-    <form (submit)="submitForm($event)"
-        class="max-w-md mx-auto flex flex-col gap-2 justify-center mt-44 bg-white max-sm:p-6 p-10 rounded-lg shadow-md text-white">
-        <h2 class="text-2xl font-medium text-gray-800 mb-4">Iniciar sesión</h2>
-        <div class="relative z-0 w-full mb-5 group">
-            <input (input)="handleInputChange('email', $event)" type="email" name="email" id="floating_email"
-                class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-                placeholder=" " required />
-            <label for="floating_email"
-                class="peer-focus:font-medium absolute text-sm text-gray-400 duration-300 transform -translate-y-3 scale-90 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto peer-focus:text-gray-800 peer-focus:dark:text-gray-800 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-90 peer-focus:-translate-y-3">Correo
-                electrónico</label>
-        </div>
-        <div class="relative z-0 w-full mb-5 group">
-            <input (input)="handleInputChange('password', $event)" type="password" name="password" id="floating_password"
-                class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-                placeholder="" required />
-            <p class="text-red-600 font-semibold mt-2">{{formData.error}}</p>
-            <label for="floating_password"
-                class="peer-focus:font-medium absolute text-sm text-gray-400 duration-300 transform -translate-y-3 scale-90 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-gray-800 peer-focus:dark:text-gray-800 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-90 peer-focus:-translate-y-3">Contraseña</label>
-        </div>
-        <button type="submit"
-            class="text-white shadow bg-blue-600 hover:bg-blue-700 transition focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Iniciar
-            sesión</button>
-    </form>
-    @if(isLoading){
-    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-t-8 border-blue-500"></div>
+<app-auth-layout title="Bienvenido de nuevo" subtitle="Inicia sesión para reservar y gestionar tus citas.">
+  @if (expired) {
+    <div class="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-800">
+      <i class="fas fa-clock mt-0.5"></i>
+      <span>Tu sesión ha caducado. Vuelve a iniciar sesión para continuar.</span>
     </div>
+  }
+
+  <form #form="ngForm" (ngSubmit)="form.valid && submitForm()" class="space-y-5" novalidate>
+    <div>
+      <label for="email" class="label">Correo electrónico</label>
+      <div class="relative">
+        <i class="fas fa-envelope pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+        <input id="email" name="email" type="email" autocomplete="email" required email [(ngModel)]="formData.email" #email="ngModel"
+          class="input pl-10" [class.input-error]="email.invalid && (email.touched || form.submitted)" placeholder="tu@email.com" />
+      </div>
+      @if (email.invalid && (email.touched || form.submitted)) {
+        <p class="field-error">Introduce un email válido.</p>
+      }
+    </div>
+
+    <div>
+      <label for="password" class="label">Contraseña</label>
+      <div class="relative">
+        <i class="fas fa-lock pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+        <input id="password" name="password" [type]="showPassword() ? 'text' : 'password'" autocomplete="current-password" required
+          minlength="6" [(ngModel)]="formData.password" #password="ngModel" class="input px-10"
+          [class.input-error]="password.invalid && (password.touched || form.submitted)" placeholder="••••••••" />
+        <button type="button" class="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-slate-400 hover:text-slate-700"
+          (click)="showPassword.set(!showPassword())" [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+          <i class="fas" [class.fa-eye]="!showPassword()" [class.fa-eye-slash]="showPassword()"></i>
+        </button>
+      </div>
+      @if (password.invalid && (password.touched || form.submitted)) {
+        <p class="field-error">La contraseña debe tener al menos 6 caracteres.</p>
+      }
+    </div>
+
+    @if (error()) {
+      <div class="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-sm font-medium text-rose-700" role="alert">
+        <i class="fas fa-circle-exclamation mt-0.5"></i> {{ error() }}
+      </div>
     }
-</div>
+
+    <button type="submit" class="btn btn-primary btn-lg w-full" [disabled]="isLoading()">
+      @if (isLoading()) {
+        <span class="spinner size-4"></span> Entrando…
+      } @else {
+        Iniciar sesión <i class="fas fa-arrow-right text-sm"></i>
+      }
+    </button>
+  </form>
+
+  <p class="mt-8 text-center text-sm text-slate-500">
+    ¿Aún no tienes cuenta?
+    <a routerLink="/auth/register" [queryParams]="returnUrl ? { returnUrl } : {}" class="font-semibold text-brand-600 hover:text-brand-700">Regístrate gratis</a>
+  </p>
+</app-auth-layout>

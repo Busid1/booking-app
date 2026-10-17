@@ -1,49 +1,73 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { ServiceInterface } from '../../shared/interfaces/service.interface';
-import { CommonModule, CurrencyPipe } from '@angular/common';
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { BusinessHoursInterface } from '../../shared/interfaces/business-hours.interface';
+import { addDays, fromDateKey, mondayBasedDay, toDateKey } from '../../shared/services/time.utils';
+import { groupSlotsByPeriod } from '../booking.utils';
 
+export const BOOKING_WINDOW_DAYS = 60;
+
+interface DayOption {
+  key: string;
+  date: Date;
+  closed: boolean;
+}
+
+/** Selector de día (tira horizontal) y de hora (huecos agrupados por franja). */
 @Component({
   selector: 'app-datePicker',
   templateUrl: './datePicker.component.html',
   standalone: true,
-  imports: [CurrencyPipe, CommonModule]
+  imports: [DatePipe],
 })
 export class DatePickerComponent {
-  @Input() appointmentsAvailable: string[] = [];
-  @Input() dateAppointment: string | null = null;
-  @Input() selectedServiceData!: ServiceInterface;
-  @Input() dateHourAppointment: string | null = null;
-  @Input() isLoadingHours: boolean = false;
+  @Input({ required: true }) schedule: BusinessHoursInterface[] = [];
+  @Input() selectedDate: string | null = null;
+  @Input() selectedTime: string | null = null;
+  @Input() isLoadingSlots = false;
+  @Input() set slots(value: string[]) {
+    this.groups = groupSlotsByPeriod(value);
+    this.slotCount = value.length;
+  }
 
   @Output() dateSelected = new EventEmitter<string>();
   @Output() hourSelected = new EventEmitter<string>();
 
-  getTodayDate(): string {
+  @ViewChild('strip') strip?: ElementRef<HTMLDivElement>;
+
+  groups: ReturnType<typeof groupSlotsByPeriod> = [];
+  slotCount = 0;
+
+  readonly minDate = toDateKey(new Date());
+  readonly maxDate = toDateKey(addDays(new Date(), BOOKING_WINDOW_DAYS));
+
+  get dayOptions(): DayOption[] {
+    if (this._daysCache?.schedule === this.schedule) return this._daysCache.days;
     const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    const days = Array.from({ length: BOOKING_WINDOW_DAYS }, (_, i) => {
+      const date = addDays(today, i);
+      const day = this.schedule[mondayBasedDay(date)];
+      return { key: toDateKey(date), date, closed: !day || day.isClosed };
+    });
+    this._daysCache = { schedule: this.schedule, days };
+    return days;
+  }
+  private _daysCache?: { schedule: BusinessHoursInterface[]; days: DayOption[] };
+
+  isOutsideStrip(): boolean {
+    return !!this.selectedDate && !this.dayOptions.some(d => d.key === this.selectedDate);
   }
 
-  today: string = this.getTodayDate();
-
-  handleDateChange(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.dateSelected.emit(input.value);
+  selectedDateObj(): Date | null {
+    return this.selectedDate ? fromDateKey(this.selectedDate) : null;
   }
 
-  handleSelectedHourDate(hour: string) {
-    this.hourSelected.emit(hour);
+  scrollStrip(direction: 1 | -1) {
+    const el = this.strip?.nativeElement;
+    el?.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: 'smooth' });
   }
 
-  getAppointmentRange(): string {
-    const start = this.dateHourAppointment;
-    if (!this.dateAppointment || !start || !this.selectedServiceData?.duration) return '';
-
-    const startMinutes = Number(start.split(':')[0]) * 60 + Number(start.split(':')[1]);
-    const endMinutes = startMinutes + this.selectedServiceData.duration;
-    const end = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
-    return `${start} - ${end}`;
+  onCustomDate(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    if (value) this.dateSelected.emit(value);
   }
 }
