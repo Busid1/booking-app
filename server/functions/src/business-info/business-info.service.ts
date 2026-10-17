@@ -11,7 +11,7 @@ export class BusinessInfoService {
     constructor(private readonly prismaService: PrismaService) { }
 
     async saveBusinessInfo(dto: BusinessInfoDto) {
-        const optional = (value?: string) => (value === undefined ? undefined : value.trim() || null);
+        const optional = (value?: string | null) => (value === undefined ? undefined : value?.trim() || null);
         const data = {
             name: dto.name.trim(),
             description: dto.description.trim(),
@@ -27,6 +27,10 @@ export class BusinessInfoService {
             website: optional(dto.website),
             primaryColor: optional(dto.primaryColor),
             cancellationHours: dto.cancellationHours,
+            showAddress: dto.showAddress,
+            showPhone: dto.showPhone,
+            showEmail: dto.showEmail,
+            googleCalendarId: optional(dto.googleCalendarId),
         };
         return this.prismaService.businessInfo.upsert({
             where: { id: 1 },
@@ -53,9 +57,19 @@ export class BusinessInfoService {
         });
     }
 
-    /** Se mantiene el formato de array por compatibilidad con clientes existentes. */
-    async getBusinessInfo() {
-        return this.prismaService.businessInfo.findMany({ where: { id: 1 } });
+    /**
+     * Se mantiene el formato de array por compatibilidad con clientes existentes.
+     * Para el público se vacían los datos de contacto ocultos y la configuración interna.
+     */
+    async getBusinessInfo(isAdmin = false) {
+        const list = await this.prismaService.businessInfo.findMany({ where: { id: 1 } });
+        if (isAdmin) return list;
+        return list.map(({ googleCalendarId, ...info }) => ({
+            ...info,
+            address: info.showAddress ? info.address : '',
+            phone: info.showPhone ? info.phone : '',
+            email: info.showEmail ? info.email : '',
+        }));
     }
 
     /** Guarda el logo y devuelve el anterior (para borrarlo de Cloudinary). */

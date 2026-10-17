@@ -21,7 +21,7 @@ Para cambiar solo variables (sin reconstruir): `gcloud run services update bookl
 | `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | No | Verificación anti-bots en reservas sin cuenta |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Para señales | Cobro de señal online en los servicios que la tengan |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | No | Sincronización con Google Calendar |
-| `GOOGLE_CALENDAR_ID` | No | Calendario por defecto (cada profesional puede tener el suyo) |
+| `GOOGLE_CALENDAR_ID` | No | Calendario por defecto si no se indica en la web (Información → Reservas). Cada profesional puede tener el suyo |
 | `BUSINESS_TIMEZONE` | No | Zona horaria (por defecto `Europe/Madrid`) |
 | `CORS_ORIGINS` | No | Orígenes extra permitidos, separados por comas |
 
@@ -66,8 +66,10 @@ la *site key* → `TURNSTILE_SITE_KEY` y la *secret key* → `TURNSTILE_SECRET_K
 1. La cuenta de servicio (el `client_email` del JSON) necesita permiso sobre el calendario:
    Google Calendar → tu calendario → Configuración y uso compartido → Compartir con personas
    concretas → añade ese email con «Hacer cambios en eventos».
-2. `GOOGLE_CALENDAR_ID` = el email/ID del calendario. Para el calendario propio de un
-   profesional, compártelo igual y pon su ID en Panel → Equipo → Opciones avanzadas.
+2. Escribe el email/ID del calendario en la web: Información → Editar → Reservas → «Calendario
+   de Google» (ahí también se muestra el email de la cuenta de servicio con el que compartirlo).
+   Para el calendario propio de un profesional, compártelo igual y pon su ID en Panel → Equipo →
+   Opciones avanzadas.
 
 ### Profesionales con acceso a su agenda
 El profesional se registra en la web; después, en Panel → Equipo → Opciones avanzadas,

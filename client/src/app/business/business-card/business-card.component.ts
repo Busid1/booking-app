@@ -39,6 +39,18 @@ export default class BusinessCardComponent {
   );
   readonly telUrl = computed(() => `tel:${this.info().phone.replace(/[^\d+]/g, '')}`);
   readonly socials = computed(() => activeSocials(this.info()));
+
+  /** Datos de contacto a mostrar: el público solo recibe los visibles; el admin los ve todos. */
+  readonly contactItems = computed(() => {
+    const info = this.info();
+    const admin = this.auth.isAdmin();
+    const items = [
+      { key: 'address', label: 'Dirección', value: info.address, visible: info.showAddress !== false, icon: 'fa-location-dot', tone: 'bg-brand-50 text-brand-600', href: this.mapsUrl() },
+      { key: 'phone', label: 'Teléfono', value: info.phone, visible: info.showPhone !== false, icon: 'fa-phone', tone: 'bg-accent-50 text-accent-600', href: info.phone ? this.telUrl() : '' },
+      { key: 'email', label: 'Email', value: info.email, visible: info.showEmail !== false, icon: 'fa-envelope', tone: 'bg-amber-50 text-amber-600', href: info.email ? 'mailto:' + info.email : '' },
+    ];
+    return items.filter(i => (admin ? true : i.visible && !!i.value));
+  });
   readonly networks = SOCIAL_NETWORKS;
   readonly brandPresets = BRAND_PRESETS;
 
@@ -63,11 +75,16 @@ export default class BusinessCardComponent {
       ...rest,
       primaryColor: rest.primaryColor || '#4f46e5',
       cancellationHours: rest.cancellationHours ?? 0,
+      showAddress: rest.showAddress ?? true,
+      showPhone: rest.showPhone ?? true,
+      showEmail: rest.showEmail ?? true,
+      googleCalendarId: rest.googleCalendarId ?? '',
       ...Object.fromEntries(SOCIAL_NETWORKS.map(n => [n.key, rest[n.key] ?? ''])),
     };
     this.originalColor = rest.primaryColor;
     this.tab.set('datos');
     this.isEditOpen.set(true);
+    this.store.loadConfig().catch(() => undefined);
   }
 
   closeEdit() {

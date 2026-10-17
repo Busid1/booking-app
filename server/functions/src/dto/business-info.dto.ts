@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 
 const SOCIAL = { message: 'El enlace o usuario no es válido' };
 
@@ -44,4 +44,15 @@ export class BusinessInfoDto {
     @Min(0)
     @Max(168)
     cancellationHours?: number;
+
+    // Visibilidad pública de cada dato de contacto
+    @IsOptional() @IsBoolean() showAddress?: boolean;
+    @IsOptional() @IsBoolean() showPhone?: boolean;
+    @IsOptional() @IsBoolean() showEmail?: boolean;
+
+    /** Email o ID del calendario de Google donde se crean las citas ('' para desactivarlo). */
+    @IsOptional()
+    @IsString()
+    @MaxLength(200)
+    googleCalendarId?: string;
 }

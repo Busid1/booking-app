@@ -1,4 +1,7 @@
-import { Controller, Post, Body, Get, UseInterceptors, UploadedFiles, UploadedFile, Delete, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseInterceptors, UploadedFiles, UploadedFile, Delete, Query, BadRequestException, UseGuards } from '@nestjs/common';
+import { OptionalJwtGuard } from '../auth/optional-jwt.guard';
+import { GetUser } from '../auth/get-user.decorator';
+import { AuthUser } from '../auth/auth-user.interface';
 import { BusinessInfoService } from './business-info.service';
 import { BusinessInfoDto } from '../dto/business-info.dto';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
@@ -55,7 +58,8 @@ export class BusinessInfoController {
     }
 
     @Get('get')
-    getBusinessInfo() {
-        return this.businessInfoService.getBusinessInfo();
+    @UseGuards(OptionalJwtGuard)
+    getBusinessInfo(@GetUser() user?: AuthUser) {
+        return this.businessInfoService.getBusinessInfo(user?.role === 'admin');
     }
 }

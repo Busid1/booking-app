@@ -69,6 +69,11 @@ export class AppointmentService {
         return this.prisma.businessInfo.findUnique({ where: { id: 1 } });
     }
 
+    /** Email del negocio para "responder a" en los emails al cliente, solo si es público. */
+    private replyToOf(info: { email: string; showEmail: boolean } | null): string | null {
+        return info?.showEmail === false ? null : info?.email || null;
+    }
+
     private clientNameOf(a: FullAppointment): string {
         return a.clientName || a.user?.name || 'Cliente';
     }
@@ -81,8 +86,8 @@ export class AppointmentService {
         const info = await this.businessInfo();
         return {
             businessName: info?.name || 'Bookly',
-            businessAddress: info?.address,
-            businessPhone: info?.phone,
+            businessAddress: info?.showAddress === false ? null : info?.address,
+            businessPhone: info?.showPhone === false ? null : info?.phone,
             primaryColor: info?.primaryColor,
             cancellationHours: info?.cancellationHours ?? 0,
             clientName: this.clientNameOf(a),
@@ -129,7 +134,7 @@ export class AppointmentService {
             const data = await this.emailData(a);
             const info = await this.businessInfo();
             const toClient = this.mail.confirmationEmail(data);
-            await this.mail.send(this.clientEmailOf(a), toClient.subject, toClient.html, info?.email);
+            await this.mail.send(this.clientEmailOf(a), toClient.subject, toClient.html, this.replyToOf(info));
             const toBusiness = this.mail.businessNotification(
                 { ...data, clientEmail: this.clientEmailOf(a), clientPhone: a.clientPhone || a.user?.phone }, 'new');
             await this.mail.send(process.env.NOTIFY_EMAIL || info?.email, toBusiness.subject, toBusiness.html, this.clientEmailOf(a));
@@ -147,7 +152,7 @@ export class AppointmentService {
             const info = await this.businessInfo();
             if (notifyClient) {
                 const mail = this.mail.cancellationEmail(data);
-                await this.mail.send(this.clientEmailOf(a), mail.subject, mail.html, info?.email);
+                await this.mail.send(this.clientEmailOf(a), mail.subject, mail.html, this.replyToOf(info));
             }
             const toBusiness = this.mail.businessNotification(
                 { ...data, clientEmail: this.clientEmailOf(a), clientPhone: a.clientPhone || a.user?.phone }, 'cancelled');
@@ -532,7 +537,7 @@ export class AppointmentService {
             const email = this.clientEmailOf(a);
             if (email) {
                 const mail = this.mail.reminderEmail(await this.emailData(a));
-                if (await this.mail.send(email, mail.subject, mail.html, (await this.businessInfo())?.email)) sent++;
+                if (await this.mail.send(email, mail.subject, mail.html, this.replyToOf(await this.businessInfo()))) sent++;
             }
             await this.prisma.appointment.update({ where: { id: a.id }, data: { reminderSentAt: new Date() } });
         }
@@ -556,8 +561,10 @@ export class AppointmentService {
         });
 
         const byCalendar = new Map<string, typeof local>();
+        const fallback = await this.googleCalendar.resolveCalendarId(null);
         for (const a of local) {
-            const cal = a.staff?.calendarId || this.googleCalendar.defaultCalendarId;
+            const cal = a.staff?.calendarId || fallback;
+            if (!cal) continue;
             byCalendar.set(cal, [...(byCalendar.get(cal) ?? []), a]);
         }
 
