@@ -6,8 +6,6 @@ import { AuthService } from '../auth/auth.service';
 import { SharedService } from '../shared/services/shared.service';
 import { alerts } from '../shared/services/alerts';
 
-const WHATSAPP_POPUP_KEY = 'whatsappPopupDismissed';
-
 /** Portada del negocio: hero con carrusel, contacto y horario. */
 @Component({
   selector: 'app-business',
@@ -20,7 +18,6 @@ export class BusinessComponent implements OnInit {
   readonly store = inject(SharedService);
 
   readonly isLoading = signal(!this.store.infoLoaded());
-  readonly showWhatsappPopup = signal(!this.readDismissed());
 
   async ngOnInit() {
     try {
@@ -29,23 +26,6 @@ export class BusinessComponent implements OnInit {
       alerts.error(error, 'No se ha podido cargar la información del negocio');
     } finally {
       this.isLoading.set(false);
-    }
-  }
-
-  private readDismissed(): boolean {
-    try {
-      return localStorage.getItem(WHATSAPP_POPUP_KEY) === '1';
-    } catch {
-      return false;
-    }
-  }
-
-  closePopup() {
-    this.showWhatsappPopup.set(false);
-    try {
-      localStorage.setItem(WHATSAPP_POPUP_KEY, '1');
-    } catch {
-      /* almacenamiento no disponible */
     }
   }
 }
