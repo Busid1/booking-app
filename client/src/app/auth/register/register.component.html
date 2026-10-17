@@ -25,6 +25,19 @@
     </div>
 
     <div>
+      <label for="phone" class="label">Teléfono <span class="font-normal text-slate-400">(opcional)</span></label>
+      <div class="relative">
+        <i class="fas fa-phone pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>
+        <input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="20" pattern="^\+?[0-9\s().\-]{6,20}$"
+          [(ngModel)]="formData.phone" #phone="ngModel" class="input pl-10" [class.input-error]="phone.invalid && (phone.touched || form.submitted)"
+          placeholder="Para avisarte si hay cambios" />
+      </div>
+      @if (phone.invalid && (phone.touched || form.submitted)) {
+        <p class="field-error">Introduce un teléfono válido.</p>
+      }
+    </div>
+
+    <div>
       <label for="password" class="label">Contraseña</label>
       <div class="relative">
         <i class="fas fa-lock pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400"></i>

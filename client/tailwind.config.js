@@ -6,7 +6,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        brand: colors.indigo,
+        // Color de marca configurable: variables CSS (ver styles.scss y theme.ts)
+        brand: Object.fromEntries(
+          [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950].map(shade => [shade, `rgb(var(--brand-${shade}) / <alpha-value>)`]),
+        ),
         accent: colors.emerald,
       },
       fontFamily: {

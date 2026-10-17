@@ -5,9 +5,9 @@
   --fc-button-text-color: #334155;
   --fc-button-hover-bg-color: #f8fafc;
   --fc-button-hover-border-color: #cbd5e1;
-  --fc-button-active-bg-color: #4f46e5;
-  --fc-button-active-border-color: #4f46e5;
-  --fc-today-bg-color: #eef2ff;
+  --fc-button-active-bg-color: rgb(var(--brand-600));
+  --fc-button-active-border-color: rgb(var(--brand-600));
+  --fc-today-bg-color: rgb(var(--brand-50));
   --fc-now-indicator-color: #e11d48;
   --fc-non-business-color: rgb(241 245 249 / 0.7);
   --fc-page-bg-color: #ffffff;

@@ -1,6 +1,6 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto } from '../dto/register.dto';
+import { RegisterDto, UpdateProfileDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { AdminOnly, Authenticated } from './admin.guard';
 import { GetUser } from './get-user.decorator';
@@ -24,6 +24,12 @@ export class AuthController {
     @Authenticated()
     me(@GetUser() user: AuthUser) {
         return this.authService.getProfile(user.id);
+    }
+
+    @Patch('me')
+    @Authenticated()
+    updateMe(@GetUser() user: AuthUser, @Body() dto: UpdateProfileDto) {
+        return this.authService.updateProfile(user.id, dto);
     }
 
     @Get('get-users')

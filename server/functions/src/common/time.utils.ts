@@ -30,3 +30,19 @@ export function nowInBusinessTimezone(): { date: string; time: string } {
   const get = (type: string) => parts.find(p => p.type === type)?.value ?? '00';
   return { date: `${get('year')}-${get('month')}-${get('day')}`, time: `${get('hour')}:${get('minute')}` };
 }
+
+/** Minutos que faltan desde "ahora" (en la zona del negocio) hasta una fecha y hora dadas. Negativo si ya pasó. */
+export function minutesUntil(date: string, time: string): number {
+  const now = nowInBusinessTimezone();
+  const toEpochMinutes = (d: string, t: string) => {
+    const [y, m, day] = d.split('-').map(Number);
+    return Date.UTC(y, m - 1, day) / 60000 + toMinutes(t);
+  };
+  return toEpochMinutes(date, time) - toEpochMinutes(now.date, now.time);
+}
+
+/** Suma días a una fecha YYYY-MM-DD. */
+export function addDaysToKey(date: string, days: number): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}

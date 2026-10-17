@@ -18,7 +18,7 @@ export default class RegisterComponent {
 
   @Input() returnUrl = '';
 
-  formData = { name: '', email: '', password: '' };
+  formData = { name: '', email: '', phone: '', password: '' };
   readonly error = signal('');
   readonly isLoading = signal(false);
   readonly showPassword = signal(false);
@@ -40,7 +40,7 @@ export default class RegisterComponent {
 
     try {
       await firstValueFrom(
-        this.authService.registerUser(this.formData.email, this.formData.password, this.formData.name),
+        this.authService.registerUser(this.formData.email, this.formData.password, this.formData.name, this.formData.phone),
       );
       alerts.success('¡Cuenta creada!', 'Ya puedes reservar tu cita.');
       const target = this.returnUrl?.startsWith('/') && !this.returnUrl.startsWith('//') ? this.returnUrl : '/servicios';

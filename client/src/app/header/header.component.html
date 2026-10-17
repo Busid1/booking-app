@@ -1,11 +1,16 @@
 <header class="fixed inset-x-0 top-0 z-50 transition-all duration-300"
   [class]="scrolled() || mobileOpen() ? 'border-b border-slate-200/70 bg-white/85 shadow-sm backdrop-blur-lg' : 'bg-transparent'">
   <nav class="container-page flex h-16 items-center justify-between gap-4 sm:h-[4.5rem]">
-    <a routerLink="/" class="group flex items-center gap-2.5">
-      <span class="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md shadow-brand-600/30 transition group-hover:rotate-6">
-        <i class="fas fa-calendar-check text-sm"></i>
-      </span>
-      <span class="text-xl font-extrabold tracking-tight text-slate-900">Book<span class="text-brand-600">ly</span></span>
+    <a routerLink="/" class="group flex min-w-0 items-center gap-2.5">
+      @if (store.businessInfo().logo) {
+        <img [src]="store.businessInfo().logo" alt="" class="h-10 w-auto max-w-[3.5rem] shrink-0 object-contain" />
+        <span class="truncate text-lg font-extrabold tracking-tight text-slate-900">{{ store.businessInfo().name }}</span>
+      } @else {
+        <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md shadow-brand-600/30 transition group-hover:rotate-6">
+          <i class="fas fa-calendar-check text-sm"></i>
+        </span>
+        <span class="text-xl font-extrabold tracking-tight text-slate-900">Book<span class="text-brand-600">ly</span></span>
+      }
     </a>
 
     <!-- Navegación escritorio -->
@@ -31,12 +36,21 @@
                 <p class="truncate text-xs text-slate-500">{{ auth.user()?.email }}</p>
                 @if (auth.isAdmin()) {
                   <span class="badge mt-2 bg-brand-50 text-brand-700"><i class="fas fa-shield-halved"></i> Administrador</span>
+                } @else if (auth.isStaff()) {
+                  <span class="badge mt-2 bg-accent-50 text-accent-700"><i class="fas fa-user-tie"></i> Profesional</span>
                 }
               </div>
               <div class="my-1 h-px bg-slate-100"></div>
               @if (auth.isAdmin()) {
                 <a routerLink="/panel" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" role="menuitem">
                   <i class="fas fa-chart-line w-4 text-slate-400"></i> Panel
+                </a>
+              } @else if (auth.isStaff()) {
+                <a routerLink="/panel" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" role="menuitem">
+                  <i class="fas fa-calendar-days w-4 text-slate-400"></i> Mi agenda
+                </a>
+                <a routerLink="/mis-citas" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" role="menuitem">
+                  <i class="fas fa-ticket w-4 text-slate-400"></i> Mis citas
                 </a>
               } @else {
                 <a routerLink="/mis-citas" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" role="menuitem">
@@ -111,11 +125,19 @@
         <i class="fas fa-chart-line text-xs opacity-70"></i> Panel
       </a>
     </li>
-  } @else if (auth.isLoggedIn()) {
+  } @else {
+    @if (auth.isStaff()) {
+      <li>
+        <a routerLink="/panel" routerLinkActive="!bg-brand-50 !text-brand-700"
+          class="flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-slate-600 transition hover:text-slate-900">
+          <i class="fas fa-calendar-days text-xs opacity-70"></i> Mi agenda
+        </a>
+      </li>
+    }
     <li>
       <a routerLink="/mis-citas" routerLinkActive="!bg-brand-50 !text-brand-700"
         class="flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-slate-600 transition hover:text-slate-900">
-        <i class="fas fa-calendar-days text-xs opacity-70"></i> Mis citas
+        <i class="fas fa-ticket text-xs opacity-70"></i> Mis citas
       </a>
     </li>
   }

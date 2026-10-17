@@ -1,0 +1,127 @@
+<div class="container-page max-w-2xl">
+  @switch (state()) {
+    @case ('loading') {
+      <div class="card space-y-4 p-6">
+        <div class="skeleton h-8 w-1/2"></div>
+        <div class="skeleton h-24"></div>
+        <div class="skeleton h-10"></div>
+      </div>
+    }
+
+    @case ('notfound') {
+      <div class="card flex flex-col items-center gap-3 p-10 text-center">
+        <span class="grid size-14 place-items-center rounded-full bg-slate-100 text-xl text-slate-400"><i class="far fa-calendar-xmark"></i></span>
+        <h1 class="text-xl font-bold">Esta cita no existe o ya se ha cancelado</h1>
+        <p class="text-sm text-slate-500">Si crees que es un error, contacta con el negocio.</p>
+        <a routerLink="/servicios" class="btn btn-primary mt-2"><i class="fas fa-calendar-plus"></i> Reservar una cita</a>
+      </div>
+    }
+
+    @case ('cancelled') {
+      <div class="card flex animate-pop-in flex-col items-center gap-3 p-10 text-center">
+        <span class="grid size-14 place-items-center rounded-full bg-accent-50 text-xl text-accent-600"><i class="fas fa-check"></i></span>
+        <h1 class="text-xl font-bold">Cita cancelada</h1>
+        <p class="text-sm text-slate-500">Hemos liberado tu hueco. ¡Esperamos verte pronto!</p>
+        <a routerLink="/servicios" class="btn btn-primary mt-2"><i class="fas fa-calendar-plus"></i> Reservar otra cita</a>
+      </div>
+    }
+
+    @case ('error') {
+      <div class="card flex flex-col items-center gap-3 p-10 text-center">
+        <h1 class="text-xl font-bold">No hemos podido cargar tu cita</h1>
+        <button type="button" class="btn btn-secondary" (click)="load()"><i class="fas fa-rotate-right"></i> Reintentar</button>
+      </div>
+    }
+
+    @case ('ready') {
+      @if (appointment(); as a) {
+        <article class="card animate-slide-up overflow-hidden">
+          <header class="bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white sm:p-8">
+            @if (a.status === 'pending_payment') {
+              <span class="badge bg-amber-400/90 text-amber-950"><i class="fas fa-hourglass-half"></i> Pendiente de pago</span>
+            } @else if (a.ended) {
+              <span class="badge bg-white/15 text-white ring-1 ring-white/30"><i class="fas fa-check"></i> Completada</span>
+            } @else {
+              <span class="badge bg-accent-400/90 text-accent-950"><i class="fas fa-check"></i> Confirmada</span>
+            }
+            <h1 class="mt-3 text-2xl font-extrabold text-white sm:text-3xl">{{ a.service.title }}</h1>
+            <p class="mt-1 text-brand-100 first-letter:uppercase">{{ date() | date: "EEEE d 'de' MMMM 'de' y" }} · {{ a.startTime }} – {{ a.endTime }}</p>
+          </header>
+
+          <div class="space-y-5 p-6 sm:p-8">
+            @if (a.status === 'pending_payment') {
+              <div class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                @if (pago === 'ok') { <span class="spinner mt-0.5 size-4"></span> } @else { <i class="fas fa-circle-info mt-0.5"></i> }
+                <span>
+                  @if (pago === 'ok') { Estamos confirmando tu pago… } @else { La reserva se confirmará cuando se complete el pago de la señal. Si no se paga, el hueco se liberará en unos minutos. }
+                </span>
+              </div>
+            }
+
+            <dl class="grid gap-3 sm:grid-cols-2">
+              <div class="rounded-2xl bg-slate-50 p-4">
+                <dt class="text-xs font-medium text-slate-500">A nombre de</dt>
+                <dd class="mt-1 font-bold text-slate-900">{{ a.clientName }}</dd>
+              </div>
+              <div class="rounded-2xl bg-slate-50 p-4">
+                <dt class="text-xs font-medium text-slate-500">Precio</dt>
+                <dd class="mt-1 font-bold text-slate-900">
+                  {{ a.service.price | currency: 'EUR' }}
+                  @if (a.depositPaid) { <span class="text-sm font-medium text-accent-700">· señal pagada {{ a.depositPaid | currency: 'EUR' }}</span> }
+                </dd>
+              </div>
+              @if (a.staff; as staff) {
+                <div class="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 sm:col-span-2">
+                  <app-staff-avatar class="size-10" [name]="staff.name" [photo]="staff.photo" [color]="staff.color" />
+                  <div>
+                    <dt class="text-xs font-medium text-slate-500">Profesional</dt>
+                    <dd class="font-bold text-slate-900">{{ staff.name }}</dd>
+                  </div>
+                </div>
+              }
+            </dl>
+
+            @if (store.businessInfo().address) {
+              <p class="flex items-center gap-2 text-sm text-slate-600">
+                <i class="fas fa-location-dot text-brand-500"></i> {{ store.businessInfo().name }} · {{ store.businessInfo().address }}
+              </p>
+            }
+
+            @if (a.review) {
+              <div class="flex items-center gap-3 rounded-xl bg-accent-50 p-4 text-sm text-accent-800">
+                <app-stars [value]="a.review.rating" /> ¡Gracias por tu valoración!
+              </div>
+            }
+
+            <div class="flex flex-wrap gap-2 border-t border-slate-100 pt-5">
+              @if (a.canReview) {
+                <button type="button" class="btn btn-primary" (click)="reviewOpen.set(true)"><i class="fas fa-star"></i> Valorar cita</button>
+              }
+              @if (!a.ended && a.status === 'confirmed') {
+                <a [href]="calendarLink()" target="_blank" rel="noopener" class="btn btn-secondary"><i class="far fa-calendar-plus"></i> Añadir a mi calendario</a>
+              }
+              @if (!a.ended) {
+                @if (a.canCancel) {
+                  <button type="button" class="btn btn-secondary text-rose-600 hover:border-rose-200 hover:bg-rose-50" (click)="cancel()" [disabled]="cancelling()">
+                    @if (cancelling()) { <span class="spinner size-4"></span> } @else { <i class="fas fa-xmark"></i> } Cancelar cita
+                  </button>
+                } @else {
+                  <p class="flex items-center gap-2 text-sm text-slate-500">
+                    <i class="fas fa-circle-info"></i>
+                    Ya no se puede cancelar online (mínimo {{ a.cancellationHours }} h de antelación).
+                    @if (store.businessInfo().phone) { Llama al {{ store.businessInfo().phone }}. }
+                  </p>
+                }
+              }
+            </div>
+          </div>
+        </article>
+
+        <p class="mt-4 text-center text-xs text-slate-400">Guarda este enlace: con él puedes consultar o cancelar tu cita en cualquier momento.</p>
+
+        <app-review-form [open]="reviewOpen()" (closed)="reviewOpen.set(false)" [manageToken]="a.manageToken"
+          [subtitle]="a.service.title" (sent)="onReviewed($event)" />
+      }
+    }
+  }
+</div>

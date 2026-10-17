@@ -1,6 +1,9 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../auth/auth.service';
+import { StaffAvatarComponent } from '../../../shared/services/staff-avatar.component';
 import { firstValueFrom } from 'rxjs';
 import { CalendarComponent, SERVICE_COLORS } from '../calendar/calendar.component';
 import { ModalCalendarComponent } from '../calendar/modal-calendar/modal-calendar.component';
@@ -14,12 +17,21 @@ import { alerts } from '../../../shared/services/alerts';
 /** Panel de administración: métricas, agenda y calendario de citas. */
 @Component({
   selector: 'app-reviewAppointments',
-  imports: [CurrencyPipe, DatePipe, RouterLink, CalendarComponent, ModalCalendarComponent, ModalCreateAppointmentComponent],
+  imports: [CurrencyPipe, DatePipe, RouterLink, FormsModule, CalendarComponent, ModalCalendarComponent, ModalCreateAppointmentComponent, StaffAvatarComponent],
   templateUrl: './review-appointments.component.html',
   standalone: true,
 })
 export class ReviewAppointmentsComponent implements OnInit {
   readonly store = inject(SharedService);
+  readonly auth = inject(AuthService);
+  /** Filtro por profesional (null = todos). */
+  readonly staffFilter = signal<string | null>(null);
+
+  /** Citas visibles según el filtro de profesional. */
+  readonly appointments = computed(() => {
+    const filter = this.staffFilter();
+    return this.store.appointments().filter(a => !filter || a.staffId === filter);
+  });
   private appointmentsService = inject(AppointmentService);
 
   readonly isLoading = signal(true);
@@ -35,11 +47,11 @@ export class ReviewAppointmentsComponent implements OnInit {
   readonly formTime = signal('');
 
   readonly upcoming = computed(() =>
-    this.store.appointments().filter(a => !isPast(a.date, a.endTime)),
+    this.appointments().filter(a => !isPast(a.date, a.endTime)),
   );
 
   readonly stats = computed(() => {
-    const all = this.store.appointments();
+    const all = this.appointments();
     const weekEnd = toDateKey(addDays(new Date(), 7));
     const month = this.today.slice(0, 7);
     const monthAppointments = all.filter(a => a.date.startsWith(month));
@@ -55,7 +67,7 @@ export class ReviewAppointmentsComponent implements OnInit {
   /** Servicios más reservados (top 4) para la tarjeta de popularidad. */
   readonly topServices = computed(() => {
     const counts = new Map<string, number>();
-    this.store.appointments().forEach(a => counts.set(a.serviceId, (counts.get(a.serviceId) ?? 0) + 1));
+    this.appointments().forEach(a => counts.set(a.serviceId, (counts.get(a.serviceId) ?? 0) + 1));
     const max = Math.max(1, ...counts.values());
     return this.store.services()
       .map((s, i) => ({ service: s, count: counts.get(s.id!) ?? 0, color: SERVICE_COLORS[i % SERVICE_COLORS.length] }))
@@ -71,6 +83,7 @@ export class ReviewAppointmentsComponent implements OnInit {
         this.store.loadAllAppointments(),
         this.store.loadAllServices(),
         this.store.loadAllBusinessHours(),
+        this.store.loadStaff(),
       ]);
     } catch (error) {
       alerts.error(error, 'No se han podido cargar las citas');
@@ -78,7 +91,7 @@ export class ReviewAppointmentsComponent implements OnInit {
       this.isLoading.set(false);
     }
     // La sincronización con Google se hace en segundo plano para no bloquear el panel.
-    this.sync(false);
+    if (this.auth.isAdmin()) this.sync(false);
   }
 
   async sync(notify = true) {

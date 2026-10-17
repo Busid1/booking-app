@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength, ValidateIf } from 'class-validator';
 
 export class RegisterDto {
     @IsEmail({}, { message: 'El email no es válido' })
@@ -13,4 +13,21 @@ export class RegisterDto {
     @IsNotEmpty({ message: 'El nombre es obligatorio' })
     @MaxLength(80)
     name: string;
+
+    @IsOptional()
+    @ValidateIf((_o, v) => v !== '' && v !== null)
+    @Matches(/^\+?[0-9\s().-]{6,20}$/, { message: 'El teléfono no es válido' })
+    phone?: string;
+}
+
+export class UpdateProfileDto {
+    @IsString()
+    @IsNotEmpty({ message: 'El nombre es obligatorio' })
+    @MaxLength(80)
+    name: string;
+
+    @IsOptional()
+    @ValidateIf((_o, v) => v !== '' && v !== null)
+    @Matches(/^\+?[0-9\s().-]{6,20}$/, { message: 'El teléfono no es válido' })
+    phone?: string;
 }

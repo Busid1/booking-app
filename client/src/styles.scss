@@ -3,6 +3,21 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Color de marca por defecto (índigo); se sustituye en tiempo de ejecución */
+    --brand-50: 238 242 255;
+    --brand-100: 224 231 255;
+    --brand-200: 199 210 254;
+    --brand-300: 165 180 252;
+    --brand-400: 129 140 248;
+    --brand-500: 99 102 241;
+    --brand-600: 79 70 229;
+    --brand-700: 67 56 202;
+    --brand-800: 55 48 163;
+    --brand-900: 49 46 129;
+    --brand-950: 30 27 75;
+  }
+
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
@@ -11,7 +26,7 @@
   body {
     @apply bg-slate-50 font-sans text-slate-700 antialiased;
     background-image:
-      radial-gradient(60rem 30rem at 110% -10%, theme('colors.brand.100 / 60%'), transparent 60%),
+      radial-gradient(60rem 30rem at 110% -10%, rgb(var(--brand-100) / 0.6), transparent 60%),
       radial-gradient(50rem 30rem at -20% 10%, theme('colors.accent.100 / 50%'), transparent 60%);
     background-attachment: fixed;
     min-height: 100vh;

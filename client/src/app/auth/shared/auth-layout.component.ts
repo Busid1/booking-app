@@ -7,7 +7,7 @@ import { Component, Input } from '@angular/core';
   template: `
     <div class="container-page grid place-items-center py-6 sm:py-10">
       <div class="card grid w-full max-w-4xl animate-slide-up overflow-hidden md:grid-cols-[1fr_1.1fr]">
-        <aside class="relative hidden overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-indigo-900 p-10 text-white md:flex md:flex-col md:justify-between">
+        <aside class="relative hidden overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900 p-10 text-white md:flex md:flex-col md:justify-between">
           <div class="absolute -right-24 -top-24 size-72 rounded-full bg-white/10 blur-2xl"></div>
           <div class="absolute -bottom-32 -left-16 size-80 rounded-full bg-accent-400/20 blur-3xl"></div>
 

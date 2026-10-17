@@ -1,7 +1,11 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import Swal from 'sweetalert2';
 
-const BRAND = '#4f46e5';
+/** Color de marca actual (variable CSS --brand-600), para los botones de SweetAlert. */
+function brand(): string {
+  const value = getComputedStyle(document.documentElement).getPropertyValue('--brand-600').trim();
+  return value ? `rgb(${value.split(/\s+/).join(',')})` : '#4f46e5';
+}
 const DANGER = '#e11d48';
 
 const toast = Swal.mixin({
@@ -41,13 +45,13 @@ export const alerts = {
       icon: 'error',
       title: 'Algo ha fallado',
       text: typeof error === 'string' ? error : getErrorMessage(error, fallback),
-      confirmButtonColor: BRAND,
+      confirmButtonColor: brand(),
       confirmButtonText: 'Entendido',
     });
   },
 
   warning(title: string, text?: string) {
-    return Swal.fire({ icon: 'warning', title, text, confirmButtonColor: BRAND, confirmButtonText: 'Ok' });
+    return Swal.fire({ icon: 'warning', title, text, confirmButtonColor: brand(), confirmButtonText: 'Ok' });
   },
 
   async confirm(options: { title: string; text?: string; confirmText?: string; cancelText?: string; danger?: boolean }) {
@@ -60,7 +64,7 @@ export const alerts = {
       focusCancel: options.danger,
       confirmButtonText: options.confirmText ?? 'Confirmar',
       cancelButtonText: options.cancelText ?? 'Cancelar',
-      confirmButtonColor: options.danger ? DANGER : BRAND,
+      confirmButtonColor: options.danger ? DANGER : brand(),
       cancelButtonColor: '#64748b',
     });
     return result.isConfirmed;

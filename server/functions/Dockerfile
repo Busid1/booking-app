@@ -28,5 +28,6 @@ EXPOSE 8080
 # Define la variable de entorno PORT para Cloud Run
 ENV PORT=8080
 
-# Comando de arranque
-CMD ["node", "lib/main.js"]
+# Comando de arranque: aplica los cambios del esquema (solo si no implican pérdida
+# de datos; si la implicaran, falla y no arranca) y luego inicia la API.
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node lib/main.js"]

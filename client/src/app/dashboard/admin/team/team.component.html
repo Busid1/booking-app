@@ -1,0 +1,159 @@
+<div class="container-page">
+  <header class="flex flex-wrap items-end justify-between gap-4">
+    <div class="animate-slide-up">
+      <p class="eyebrow">Administración</p>
+      <h1 class="mt-1 text-3xl font-extrabold sm:text-4xl">Equipo</h1>
+      <p class="mt-1 max-w-2xl text-slate-500">Cada profesional tiene su propia agenda. Los clientes pueden elegir con quién reservar o dejar que se asigne automáticamente.</p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="openCreate()"><i class="fas fa-user-plus"></i> Añadir profesional</button>
+  </header>
+
+  <section class="mt-8">
+    @if (isLoading()) {
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        @for (i of [1, 2, 3]; track i) { <div class="skeleton h-56"></div> }
+      </div>
+    } @else {
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        @for (member of staff(); track member.id; let i = $index) {
+          <article class="card flex animate-slide-up flex-col p-5" [style.animation-delay.ms]="i * 50" [class.opacity-60]="!member.active">
+            <div class="flex items-start gap-4">
+              <label class="group relative size-16 shrink-0 cursor-pointer" title="Cambiar foto">
+                <app-staff-avatar class="size-16" [name]="member.name" [photo]="member.photo" [color]="member.color" fontSize="1.25rem" />
+                <span class="absolute inset-0 grid place-items-center rounded-full bg-slate-900/50 text-white opacity-0 transition group-hover:opacity-100">
+                  @if (uploadingId() === member.id) { <span class="spinner size-4"></span> } @else { <i class="fas fa-camera"></i> }
+                </span>
+                <input type="file" accept="image/*" class="sr-only" (change)="uploadPhoto(member, $event)" />
+              </label>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h2 class="truncate text-lg font-bold">{{ member.name }}</h2>
+                  @if (!member.active) { <span class="badge bg-slate-100 text-slate-500">Inactivo</span> }
+                </div>
+                <p class="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
+                  <span class="size-2.5 rounded-full" [style.background-color]="member.color"></span>
+                  {{ member.useBusinessHours ? 'Horario del negocio' : 'Horario propio' }}
+                </p>
+              </div>
+            </div>
+
+            <dl class="mt-4 space-y-2 text-sm">
+              <div class="flex gap-2"><dt class="w-5 text-slate-400"><i class="fas fa-wand-magic-sparkles"></i></dt><dd class="line-clamp-2 text-slate-600">{{ serviceNames(member) }}</dd></div>
+              <div class="flex gap-2"><dt class="w-5 text-slate-400"><i class="fas fa-key"></i></dt>
+                <dd class="truncate text-slate-600">{{ member.accessEmail || 'Sin acceso a la agenda' }}</dd></div>
+              @if (member.calendarId) {
+                <div class="flex gap-2"><dt class="w-5 text-slate-400"><i class="fab fa-google"></i></dt><dd class="truncate text-slate-600">{{ member.calendarId }}</dd></div>
+              }
+            </dl>
+
+            <div class="mt-auto flex flex-wrap gap-2 pt-5">
+              <button type="button" class="btn btn-secondary btn-sm flex-1" (click)="openEdit(member)"><i class="fas fa-pen"></i> Editar</button>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="copyLink(member)" title="Copiar enlace de reserva"><i class="fas fa-link"></i></button>
+              <button type="button" class="btn btn-secondary btn-sm text-rose-600 hover:bg-rose-50" (click)="remove(member)" title="Eliminar"><i class="fas fa-trash-can"></i></button>
+            </div>
+          </article>
+        } @empty {
+          <div class="card col-span-full flex flex-col items-center gap-3 p-12 text-center">
+            <span class="grid size-14 place-items-center rounded-full bg-brand-50 text-xl text-brand-500"><i class="fas fa-user-group"></i></span>
+            <h2 class="text-lg font-bold">Todavía no has añadido a tu equipo</h2>
+            <p class="max-w-md text-sm text-slate-500">Mientras no haya profesionales, la agenda funciona como una sola. Al añadirlos, cada uno tendrá su propia disponibilidad.</p>
+            <button type="button" class="btn btn-primary mt-2" (click)="openCreate()"><i class="fas fa-user-plus"></i> Añadir el primero</button>
+          </div>
+        }
+      </div>
+    }
+  </section>
+</div>
+
+<app-modal [open]="formOpen()" (closed)="formOpen.set(false)" size="lg" [title]="editing() ? 'Editar profesional' : 'Nuevo profesional'"
+  subtitle="La foto se cambia desde la tarjeta del profesional.">
+  <form id="staffForm" (ngSubmit)="save()" class="space-y-6">
+    <div class="grid gap-4 sm:grid-cols-[1fr_auto]">
+      <div>
+        <label class="label" for="st-name">Nombre</label>
+        <input id="st-name" name="name" class="input" maxlength="80" required [(ngModel)]="form.name" />
+      </div>
+      <div>
+        <span class="label">Activo</span>
+        <button type="button" role="switch" [attr.aria-checked]="form.active" (click)="form.active = !form.active"
+          class="flex h-[42px] items-center gap-2.5 text-sm font-semibold" [class]="form.active ? 'text-accent-700' : 'text-slate-500'">
+          <span class="relative h-6 w-11 rounded-full transition" [class]="form.active ? 'bg-accent-500' : 'bg-slate-300'">
+            <span class="absolute top-0.5 size-5 rounded-full bg-white shadow transition-all" [class]="form.active ? 'left-[1.375rem]' : 'left-0.5'"></span>
+          </span>
+          {{ form.active ? 'Acepta reservas' : 'Oculto' }}
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <label class="label" for="st-bio">Presentación <span class="font-normal text-slate-400">(opcional)</span></label>
+      <textarea id="st-bio" name="bio" rows="2" maxlength="500" class="input resize-none" [(ngModel)]="form.bio"
+        placeholder="Especialidades, experiencia…"></textarea>
+    </div>
+
+    <div>
+      <span class="label">Color en el calendario</span>
+      <div class="flex flex-wrap items-center gap-2">
+        @for (c of colors; track c) {
+          <button type="button" class="size-8 rounded-full ring-offset-2 transition" [style.background-color]="c"
+            [class.ring-2]="form.color === c" [class.ring-slate-900]="form.color === c" (click)="form.color = c" [attr.aria-label]="'Color ' + c"></button>
+        }
+        <input type="color" name="color" class="size-8 cursor-pointer rounded-full border-0 p-0" [(ngModel)]="form.color" aria-label="Color personalizado" />
+      </div>
+    </div>
+
+    <div>
+      <span class="label">Servicios que realiza</span>
+      <div class="flex flex-wrap gap-2">
+        @for (service of store.services(); track service.id) {
+          <button type="button" class="chip py-1.5" [class.chip-active]="form.serviceIds.includes(service.id!)" (click)="toggleService(service.id!)">
+            @if (form.serviceIds.includes(service.id!)) { <i class="fas fa-check mr-1.5 text-xs"></i> }
+            {{ service.title }}
+          </button>
+        }
+      </div>
+      <p class="mt-2 text-xs text-slate-500">Si no marcas ninguno, podrá realizar todos los servicios.</p>
+    </div>
+
+    <div>
+      <span class="label">Horario</span>
+      <div class="inline-flex rounded-xl border border-slate-200 bg-white p-1">
+        <button type="button" class="rounded-lg px-3 py-1.5 text-sm font-semibold transition" [class]="form.useBusinessHours ? 'bg-brand-600 text-white' : 'text-slate-600'"
+          (click)="form.useBusinessHours = true">Horario del negocio</button>
+        <button type="button" class="rounded-lg px-3 py-1.5 text-sm font-semibold transition" [class]="!form.useBusinessHours ? 'bg-brand-600 text-white' : 'text-slate-600'"
+          (click)="form.useBusinessHours = false">Horario propio</button>
+      </div>
+      @if (!form.useBusinessHours) {
+        <div class="mt-4">
+          <app-week-hours-editor [days]="form.days" />
+        </div>
+      }
+    </div>
+
+    <details class="group rounded-2xl border border-slate-200 p-4">
+      <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-bold text-slate-800">
+        Opciones avanzadas
+        <i class="fas fa-chevron-down text-xs text-slate-400 transition group-open:rotate-180"></i>
+      </summary>
+      <div class="mt-4 space-y-4">
+        <div>
+          <label class="label" for="st-access">Acceso a su agenda <span class="font-normal text-slate-400">(email de su cuenta)</span></label>
+          <input id="st-access" name="accessEmail" type="email" class="input" maxlength="120" [(ngModel)]="form.accessEmail" placeholder="profesional@email.com" />
+          <p class="mt-1.5 text-xs text-slate-500">Debe registrarse antes en la web con ese email. Al iniciar sesión verá solo sus citas en «Mi agenda». Déjalo vacío para quitar el acceso.</p>
+        </div>
+        <div>
+          <label class="label" for="st-cal">Calendario de Google propio <span class="font-normal text-slate-400">(opcional)</span></label>
+          <input id="st-cal" name="calendarId" class="input" maxlength="200" [(ngModel)]="form.calendarId" placeholder="su-email@gmail.com" />
+          <p class="mt-1.5 text-xs text-slate-500">Sus citas se crearán en ese calendario. Debe compartirlo con la cuenta de servicio de Bookly con permiso para «Hacer cambios en eventos».</p>
+        </div>
+      </div>
+    </details>
+  </form>
+
+  <div modal-footer class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4 sm:px-6">
+    <button type="button" class="btn btn-secondary" (click)="formOpen.set(false)">Cancelar</button>
+    <button type="submit" form="staffForm" class="btn btn-primary" [disabled]="isSaving()">
+      @if (isSaving()) { <span class="spinner size-4"></span> Guardando… } @else { <i class="fas fa-floppy-disk"></i> Guardar }
+    </button>
+  </div>
+</app-modal>

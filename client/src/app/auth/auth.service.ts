@@ -43,6 +43,7 @@ export class AuthService {
   readonly user = computed(() => decodeToken(this.tokenSignal()));
   readonly isLoggedInSignal = computed(() => this.user() !== null);
   readonly isAdminSignal = computed(() => this.user()?.role === 'admin');
+  readonly isStaffSignal = computed(() => this.user()?.role === 'staff');
   readonly firstName = computed(() => (this.user()?.name || this.user()?.email || '').split(/[\s@]/)[0]);
 
   private readStoredToken(): string | null {
@@ -69,6 +70,17 @@ export class AuthService {
     return this.isLoggedIn() && this.isAdminSignal();
   }
 
+  /** Trabajador con acceso a su propia agenda. */
+  isStaff(): boolean {
+    return this.isLoggedIn() && this.isStaffSignal();
+  }
+
+  updateProfile(name: string, phone: string): Observable<AuthResponse> {
+    return this.http
+      .patch<AuthResponse>(`${environment.apiUrl}/auth/me`, { name: name.trim(), phone: phone.trim() })
+      .pipe(tap(res => this.storeSession(res)));
+  }
+
   private storeSession(response: AuthResponse) {
     localStorage.setItem(TOKEN_KEY, response.authToken);
     localStorage.setItem(ROLE_KEY, response.role);
@@ -87,9 +99,9 @@ export class AuthService {
       .pipe(tap(res => this.storeSession(res)));
   }
 
-  registerUser(email: string, password: string, name: string): Observable<AuthResponse> {
+  registerUser(email: string, password: string, name: string, phone?: string): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>(`${environment.apiUrl}/auth/register`, { email: email.trim(), password, name: name.trim() })
+      .post<AuthResponse>(`${environment.apiUrl}/auth/register`, { email: email.trim(), password, name: name.trim(), phone: phone?.trim() || undefined })
       .pipe(tap(res => this.storeSession(res)));
   }
 

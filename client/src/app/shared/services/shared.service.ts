@@ -5,8 +5,11 @@ import { AppointmentService } from '../../booking/appointment.service';
 import { ServiceInterface } from '../interfaces/service.interface';
 import { AppointmentInterface } from '../interfaces/appointment.interface';
 import { BusinessHoursInterface } from '../interfaces/business-hours.interface';
-import { BusinessInfoInterface } from '../interfaces/business-info.interface';
+import { BusinessInfoInterface, PublicConfig } from '../interfaces/business-info.interface';
+import { StaffInterface } from '../interfaces/staff.interface';
+import { ReviewsSummary } from '../interfaces/review.interface';
 import { mondayBasedDay, nowTime, toMinutes } from './time.utils';
+import { applyBrandColor } from './theme';
 
 const EMPTY_INFO: BusinessInfoInterface = { name: '', description: '', address: '', phone: '', email: '', images: [] };
 
@@ -70,6 +73,46 @@ export class SharedService {
     const info = response[0];
     this.businessInfo.set(info ? { ...info, images: (info.images ?? []).filter(Boolean) } : EMPTY_INFO);
     this.infoLoaded.set(true);
+    applyBrandColor(info?.primaryColor);
+  }
+
+  // --- Equipo ---
+  readonly staff = signal<StaffInterface[]>([]);
+  readonly staffLoaded = signal(false);
+
+  async loadStaff(): Promise<void> {
+    this.staff.set(await firstValueFrom(this.servicesApi.getStaff()));
+    this.staffLoaded.set(true);
+  }
+
+  /**
+   * Profesionales que realizan un servicio: los asignados y los que no tienen servicios
+   * marcados (hacen todos). Si nadie lo tiene asignado, todos. Igual que en el servidor.
+   */
+  staffForService(serviceId: string | undefined): StaffInterface[] {
+    const all = this.staff();
+    const assigned = all.filter(s => serviceId && s.serviceIds.includes(serviceId));
+    return assigned.length ? all.filter(s => !s.serviceIds.length || assigned.includes(s)) : all;
+  }
+
+  // --- Reseñas ---
+  readonly reviews = signal<ReviewsSummary>({ average: null, count: 0, reviews: [] });
+
+  async loadReviews(): Promise<void> {
+    this.reviews.set(await firstValueFrom(this.servicesApi.getReviews()));
+  }
+
+  // --- Configuración pública (claves públicas, funciones activas) ---
+  readonly config = signal<PublicConfig | null>(null);
+
+  async loadConfig(): Promise<PublicConfig | null> {
+    if (this.config()) return this.config();
+    try {
+      this.config.set(await firstValueFrom(this.servicesApi.getConfig()));
+    } catch {
+      this.config.set({ turnstileSiteKey: null, payments: false, email: false, googleCalendar: false, timeZone: 'Europe/Madrid' });
+    }
+    return this.config();
   }
 
   // --- Citas ---

@@ -14,10 +14,36 @@
           <dt class="flex items-center gap-2 text-slate-500"><i class="far fa-user w-4"></i> Cliente</dt>
           <dd class="text-right font-semibold text-slate-900">{{ a.clientName || a.user?.name || 'Sin nombre' }}</dd>
         </div>
-        @if (a.user?.email) {
+        @if (a.clientEmail || a.user?.email; as email) {
           <div class="flex items-center justify-between gap-4 py-3">
-            <dt class="flex items-center gap-2 text-slate-500"><i class="far fa-envelope w-4"></i> Cuenta</dt>
-            <dd class="truncate text-right font-medium text-slate-700"><a [href]="'mailto:' + a.user?.email" class="hover:text-brand-600">{{ a.user?.email }}</a></dd>
+            <dt class="flex items-center gap-2 text-slate-500"><i class="far fa-envelope w-4"></i> Email</dt>
+            <dd class="truncate text-right font-medium text-slate-700"><a [href]="'mailto:' + email" class="hover:text-brand-600">{{ email }}</a></dd>
+          </div>
+        }
+        @if (a.clientPhone || a.user?.phone; as phone) {
+          <div class="flex items-center justify-between gap-4 py-3">
+            <dt class="flex items-center gap-2 text-slate-500"><i class="fas fa-phone w-4"></i> Teléfono</dt>
+            <dd class="text-right font-medium text-slate-700"><a [href]="'tel:' + phone" class="hover:text-brand-600">{{ phone }}</a></dd>
+          </div>
+        }
+        <div class="flex items-center justify-between gap-4 py-3">
+          <dt class="flex items-center gap-2 text-slate-500"><i class="far fa-id-badge w-4"></i> Tipo</dt>
+          <dd class="text-right">
+            <span class="badge" [class]="a.userId ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-600'">{{ a.userId ? 'Con cuenta' : 'Invitado' }}</span>
+          </dd>
+        </div>
+        @if (a.staff; as staff) {
+          <div class="flex items-center justify-between gap-4 py-3">
+            <dt class="flex items-center gap-2 text-slate-500"><i class="fas fa-user-tie w-4"></i> Profesional</dt>
+            <dd class="flex items-center gap-2 font-semibold text-slate-900">
+              <app-staff-avatar class="size-6" [name]="staff.name" [photo]="staff.photo" [color]="staff.color" fontSize="0.6rem" /> {{ staff.name }}
+            </dd>
+          </div>
+        }
+        @if (a.depositPaid) {
+          <div class="flex items-center justify-between gap-4 py-3">
+            <dt class="flex items-center gap-2 text-slate-500"><i class="fas fa-credit-card w-4"></i> Señal</dt>
+            <dd class="text-right font-semibold text-accent-700">{{ a.depositPaid | currency: 'EUR' }} pagada</dd>
           </div>
         }
         <div class="flex items-center justify-between gap-4 py-3">
@@ -42,6 +68,7 @@
     </div>
   }
 
+  @if (!readOnly) {
   <div modal-footer class="flex justify-between gap-2 border-t border-slate-100 px-5 py-4 sm:px-6">
     <button type="button" class="btn btn-secondary text-rose-600 hover:border-rose-200 hover:bg-rose-50" [disabled]="isDeleting"
       (click)="appointment && deleteAppointment.emit(appointment)">
@@ -51,4 +78,5 @@
       <i class="fas fa-pen"></i> Editar
     </button>
   </div>
+  }
 </app-modal>

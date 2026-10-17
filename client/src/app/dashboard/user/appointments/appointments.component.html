@@ -1,14 +1,21 @@
 <div class="container-page max-w-4xl">
   <header class="flex flex-wrap items-end justify-between gap-4">
     <div class="animate-slide-up">
-      <p class="eyebrow">Tu cuenta</p>
+      <p class="eyebrow">{{ auth.isLoggedIn() ? 'Tu cuenta' : 'En este dispositivo' }}</p>
       <h1 class="mt-1 text-3xl font-extrabold sm:text-4xl">Mis citas</h1>
     </div>
     <a routerLink="/servicios" class="btn btn-primary"><i class="fas fa-plus"></i> Nueva cita</a>
   </header>
 
+  @if (!auth.isLoggedIn()) {
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/70 p-4 text-sm text-slate-600">
+      <span><i class="fas fa-circle-info mr-1.5 text-slate-400"></i> Aquí ves las citas reservadas sin cuenta desde este navegador.</span>
+      <a routerLink="/auth/login" [queryParams]="{ returnUrl: '/mis-citas' }" class="font-semibold text-brand-600 hover:text-brand-700">Iniciar sesión</a>
+    </div>
+  }
+
   @if (nextAppointment(); as next) {
-    <section class="mt-8 animate-slide-up overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 to-indigo-800 p-6 text-white shadow-lift sm:p-8">
+    <section class="mt-8 animate-slide-up overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white shadow-lift sm:p-8">
       <p class="text-xs font-bold uppercase tracking-[0.14em] text-brand-200">Tu próxima cita</p>
       <div class="mt-3 flex flex-wrap items-center gap-5">
         <div class="grid size-20 shrink-0 place-items-center rounded-2xl bg-white/15 text-center backdrop-blur">
@@ -18,9 +25,10 @@
           </div>
         </div>
         <div class="min-w-0">
-          <h2 class="text-2xl font-extrabold text-white">{{ next.service?.title }}</h2>
+          <h2 class="text-2xl font-extrabold text-white">{{ next.serviceTitle }}</h2>
           <p class="mt-1 text-brand-100 first-letter:uppercase">
             {{ next.date === today ? 'Hoy' : (asDate(next.date) | date: "EEEE d 'de' MMMM") }} · {{ next.startTime }} – {{ next.endTime }}
+            @if (next.staff) { · con {{ next.staff.name }} }
           </p>
         </div>
       </div>
@@ -55,9 +63,8 @@
         <button type="button" class="btn btn-secondary" (click)="load()"><i class="fas fa-rotate-right"></i> Reintentar</button>
       </div>
     } @else {
-      @for (appointment of visible(); track appointment.id; let i = $index) {
-        <article class="card flex animate-slide-up flex-wrap items-center gap-4 p-4 sm:flex-nowrap sm:p-5" [style.animation-delay.ms]="i * 40"
-          [class.opacity-75]="tab() === 'past'">
+      @for (appointment of visible(); track appointment.key; let i = $index) {
+        <article class="card flex animate-slide-up flex-wrap items-center gap-4 p-4 sm:flex-nowrap sm:p-5" [style.animation-delay.ms]="i * 40">
           <div class="grid size-16 shrink-0 place-items-center rounded-2xl text-center"
             [class]="tab() === 'past' ? 'bg-slate-100 text-slate-500' : 'bg-brand-50 text-brand-700'">
             <div>
@@ -68,27 +75,45 @@
 
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-2">
-              <h3 class="truncate font-bold">{{ appointment.service?.title }}</h3>
+              <h3 class="truncate font-bold">{{ appointment.serviceTitle }}</h3>
               @if (appointment.date === today && tab() === 'upcoming') {
                 <span class="badge bg-accent-100 text-accent-700">Hoy</span>
               }
-              @if (tab() === 'past') {
-                <span class="badge bg-slate-100 text-slate-500">Completada</span>
+              @if (appointment.guest && auth.isLoggedIn()) {
+                <span class="badge bg-slate-100 text-slate-500">Sin cuenta</span>
               }
             </div>
             <p class="mt-1 text-sm text-slate-500 first-letter:uppercase">
               {{ asDate(appointment.date) | date: 'EEEE' }} · <i class="far fa-clock"></i> {{ appointment.startTime }} – {{ appointment.endTime }}
             </p>
+            @if (appointment.staff; as staff) {
+              <p class="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+                <app-staff-avatar class="size-5" [name]="staff.name" [photo]="staff.photo" [color]="staff.color" fontSize="0.55rem" /> {{ staff.name }}
+              </p>
+            }
           </div>
 
-          <div class="flex w-full items-center justify-between gap-4 sm:w-auto">
-            <span class="text-lg font-extrabold text-slate-900">{{ appointment.service?.price | currency: 'EUR' }}</span>
-            @if (tab() === 'upcoming' && canCancel(appointment)) {
-              <button type="button" class="btn btn-secondary btn-sm text-rose-600 hover:border-rose-200 hover:bg-rose-50"
-                (click)="cancel(appointment)" [disabled]="cancellingId() === appointment.id">
-                @if (cancellingId() === appointment.id) { <span class="spinner size-3.5"></span> } @else { <i class="fas fa-xmark"></i> }
-                Cancelar
-              </button>
+          <div class="flex w-full flex-wrap items-center justify-between gap-3 sm:w-auto sm:justify-end">
+            <span class="text-lg font-extrabold text-slate-900">{{ appointment.price | currency: 'EUR' }}</span>
+            @if (tab() === 'upcoming') {
+              @if (appointment.token) {
+                <a [routerLink]="['/cita', appointment.token]" class="btn btn-ghost btn-sm">Ver</a>
+              }
+              @if (canCancel(appointment)) {
+                <button type="button" class="btn btn-secondary btn-sm text-rose-600 hover:border-rose-200 hover:bg-rose-50"
+                  (click)="cancel(appointment)" [disabled]="cancellingKey() === appointment.key">
+                  @if (cancellingKey() === appointment.key) { <span class="spinner size-3.5"></span> } @else { <i class="fas fa-xmark"></i> }
+                  Cancelar
+                </button>
+              }
+            } @else {
+              @if (appointment.review) {
+                <app-stars [value]="appointment.review.rating" />
+              } @else {
+                <button type="button" class="btn btn-secondary btn-sm" (click)="reviewing.set(appointment)">
+                  <i class="far fa-star text-amber-500"></i> Valorar
+                </button>
+              }
             }
           </div>
         </article>
@@ -105,3 +130,7 @@
     }
   </section>
 </div>
+
+<app-review-form [open]="!!reviewing()" (closed)="reviewing.set(null)" [subtitle]="reviewing()?.serviceTitle ?? ''"
+  [appointmentId]="reviewing()?.guest ? undefined : reviewing()?.id" [manageToken]="reviewing()?.token ?? null"
+  (sent)="onReviewed($event)" />

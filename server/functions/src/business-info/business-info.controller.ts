@@ -1,7 +1,7 @@
-import { Controller, Post, Body, Get, UseInterceptors, UploadedFiles, Delete, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseInterceptors, UploadedFiles, UploadedFile, Delete, Query, BadRequestException } from '@nestjs/common';
 import { BusinessInfoService } from './business-info.service';
 import { BusinessInfoDto } from '../dto/business-info.dto';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { deleteFromCloudinary, imageUploadOptions, uploadToCloudinary } from '../cloudinary/uploadImage';
 import { AdminOnly } from '../auth/admin.guard';
 
@@ -33,6 +33,25 @@ export class BusinessInfoController {
         if (!url) throw new BadRequestException('Falta la url de la imagen');
         await deleteFromCloudinary(url).catch(() => undefined);
         return this.businessInfoService.removeBusinessImage(url);
+    }
+
+    @Post('logo')
+    @AdminOnly()
+    @UseInterceptors(FileInterceptor('logo', imageUploadOptions))
+    async uploadLogo(@UploadedFile() file?: Express.Multer.File) {
+        if (!file) throw new BadRequestException('No se ha recibido la imagen');
+        const url = await uploadToCloudinary(file.buffer, 'branding');
+        const { previous, info } = await this.businessInfoService.setLogo(url);
+        if (previous) await deleteFromCloudinary(previous).catch(() => undefined);
+        return info;
+    }
+
+    @Delete('logo')
+    @AdminOnly()
+    async removeLogo() {
+        const { previous, info } = await this.businessInfoService.setLogo(null);
+        if (previous) await deleteFromCloudinary(previous).catch(() => undefined);
+        return info;
     }
 
     @Get('get')

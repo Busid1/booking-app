@@ -10,6 +10,8 @@ export interface CalendarEventData {
     duration: number;
     client: string;
     service: string;
+    staff?: string | null;
+    contact?: string | null;
 }
 
 /**
@@ -21,7 +23,7 @@ export interface CalendarEventData {
 export class GoogleCalendarService {
     private readonly logger = new Logger(GoogleCalendarService.name);
     private calendar: any = null;
-    private readonly calendarId = process.env.GOOGLE_CALENDAR_ID || 'primexd214@gmail.com';
+    readonly defaultCalendarId = process.env.GOOGLE_CALENDAR_ID || 'primexd214@gmail.com';
     private readonly timeZone = process.env.BUSINESS_TIMEZONE || 'Europe/Madrid';
 
     constructor() {
@@ -49,18 +51,25 @@ export class GoogleCalendarService {
     private buildEvent(data: CalendarEventData) {
         return {
             summary: data.summary,
-            description: `Cliente: ${data.client}\nServicio: ${data.service}\nPrecio: ${data.price}€\nDuración: ${data.duration} min`,
+            description: [
+                `Cliente: ${data.client}`,
+                data.contact ? `Contacto: ${data.contact}` : '',
+                `Servicio: ${data.service}`,
+                data.staff ? `Profesional: ${data.staff}` : '',
+                `Precio: ${data.price}€`,
+                `Duración: ${data.duration} min`,
+            ].filter(Boolean).join('\n'),
             start: { dateTime: `${data.date}T${data.startTime}:00`, timeZone: this.timeZone },
             end: { dateTime: `${data.date}T${data.endTime}:00`, timeZone: this.timeZone },
         };
     }
 
     /** Crea el evento y devuelve su id, o null si no se pudo crear. */
-    async createEvent(data: CalendarEventData): Promise<string | null> {
+    async createEvent(data: CalendarEventData, calendarId?: string | null): Promise<string | null> {
         if (!this.enabled) return null;
         try {
             const res = await this.calendar.events.insert({
-                calendarId: this.calendarId,
+                calendarId: calendarId || this.defaultCalendarId,
                 requestBody: this.buildEvent(data),
             });
             return res.data.id ?? null;
@@ -71,27 +80,27 @@ export class GoogleCalendarService {
     }
 
     /** Actualiza el evento; si no existe (o no había id) lo crea. Devuelve el id resultante. */
-    async upsertEvent(eventId: string | null, data: CalendarEventData): Promise<string | null> {
+    async upsertEvent(eventId: string | null, data: CalendarEventData, calendarId?: string | null): Promise<string | null> {
         if (!this.enabled) return eventId;
-        if (!eventId) return this.createEvent(data);
+        if (!eventId) return this.createEvent(data, calendarId);
         try {
             const res = await this.calendar.events.update({
-                calendarId: this.calendarId,
+                calendarId: calendarId || this.defaultCalendarId,
                 eventId,
                 requestBody: this.buildEvent(data),
             });
             return res.data.id ?? eventId;
         } catch (err: any) {
-            if (err?.code === 404 || err?.code === 410) return this.createEvent(data);
+            if (err?.code === 404 || err?.code === 410) return this.createEvent(data, calendarId);
             this.logger.error('Error al actualizar evento en Google Calendar', err as Error);
             return eventId;
         }
     }
 
-    async deleteEvent(eventId: string | null | undefined): Promise<void> {
+    async deleteEvent(eventId: string | null | undefined, calendarId?: string | null): Promise<void> {
         if (!this.enabled || !eventId) return;
         try {
-            await this.calendar.events.delete({ calendarId: this.calendarId, eventId });
+            await this.calendar.events.delete({ calendarId: calendarId || this.defaultCalendarId, eventId });
         } catch (err: any) {
             if (err?.code === 404 || err?.code === 410) return;
             this.logger.error('Error al borrar evento de Google Calendar', err as Error);
@@ -99,14 +108,14 @@ export class GoogleCalendarService {
     }
 
     /** Devuelve los ids de los eventos a partir de timeMin, o null si no se pudo consultar. */
-    async listEventIds(timeMin: Date): Promise<Set<string> | null> {
+    async listEventIds(timeMin: Date, calendarId?: string | null): Promise<Set<string> | null> {
         if (!this.enabled) return null;
         const ids = new Set<string>();
         let pageToken: string | undefined;
         try {
             do {
                 const res = await this.calendar.events.list({
-                    calendarId: this.calendarId,
+                    calendarId: calendarId || this.defaultCalendarId,
                     timeMin: timeMin.toISOString(),
                     maxResults: 2500,
                     singleEvents: true,
