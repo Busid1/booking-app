@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { v2 as cloudinary } from 'cloudinary';
 import * as dotenv from 'dotenv';
 import * as multer from 'multer';
@@ -26,12 +26,28 @@ export const imageUploadOptions: multer.Options = {
   },
 };
 
+const logger = new Logger('Cloudinary');
+const REQUIRED_VARS = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+
 export const uploadToCloudinary = (buffer: Buffer | undefined, folder = 'services'): Promise<string> => {
   if (!buffer) return Promise.reject(new BadRequestException('No se ha recibido la imagen'));
 
+  const missing = REQUIRED_VARS.filter(name => !process.env[name]);
+  if (missing.length) {
+    logger.error(`Faltan variables de entorno: ${missing.join(', ')}`);
+    return Promise.reject(new ServiceUnavailableException(
+      `La subida de imágenes no está configurada en el servidor (faltan ${missing.join(', ')})`,
+    ));
+  }
+
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream({ folder }, (error, result) => {
-      if (error || !result) return reject(error ?? new Error('Error subiendo imagen'));
+      if (error || !result) {
+        logger.error(`Error subiendo imagen: ${error?.message ?? 'respuesta vacía'}`);
+        return reject(new ServiceUnavailableException(
+          `Cloudinary ha rechazado la imagen: ${error?.message ?? 'error desconocido'}`,
+        ));
+      }
       resolve(result.secure_url);
     });
     Readable.from(buffer).pipe(stream);
