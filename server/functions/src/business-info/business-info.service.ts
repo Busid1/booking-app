@@ -11,12 +11,22 @@ export class BusinessInfoService {
     constructor(private readonly prismaService: PrismaService) { }
 
     async saveBusinessInfo(dto: BusinessInfoDto) {
+        const optional = (value?: string) => (value === undefined ? undefined : value.trim() || null);
         const data = {
             name: dto.name.trim(),
             description: dto.description.trim(),
             address: dto.address.trim(),
             phone: dto.phone.trim(),
             email: dto.email.trim(),
+            instagram: optional(dto.instagram),
+            tiktok: optional(dto.tiktok),
+            facebook: optional(dto.facebook),
+            whatsapp: optional(dto.whatsapp),
+            x: optional(dto.x),
+            youtube: optional(dto.youtube),
+            website: optional(dto.website),
+            primaryColor: optional(dto.primaryColor),
+            cancellationHours: dto.cancellationHours,
         };
         return this.prismaService.businessInfo.upsert({
             where: { id: 1 },
@@ -46,6 +56,17 @@ export class BusinessInfoService {
     /** Se mantiene el formato de array por compatibilidad con clientes existentes. */
     async getBusinessInfo() {
         return this.prismaService.businessInfo.findMany({ where: { id: 1 } });
+    }
+
+    /** Guarda el logo y devuelve el anterior (para borrarlo de Cloudinary). */
+    async setLogo(logo: string | null) {
+        const info = await this.prismaService.businessInfo.findUnique({ where: { id: 1 } });
+        const updated = await this.prismaService.businessInfo.upsert({
+            where: { id: 1 },
+            update: { logo },
+            create: { id: 1, ...EMPTY_INFO, logo },
+        });
+        return { previous: info?.logo ?? null, info: updated };
     }
 
     async removeBusinessImage(url: string) {

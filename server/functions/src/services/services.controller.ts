@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, Param, Put, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { ServicesService } from './services.service';
-import { ServiceDto } from '../dto/service.dto';
+import { ReorderServicesDto, ServiceDto } from '../dto/service.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { deleteFromCloudinary, imageUploadOptions, uploadToCloudinary } from '../cloudinary/uploadImage';
 import { AdminOnly } from '../auth/admin.guard';
@@ -20,6 +20,12 @@ export class ServicesController {
     @Get('all-services')
     getServices() {
         return this.servicesService.getServices();
+    }
+
+    @Put('reorder')
+    @AdminOnly()
+    reorder(@Body() dto: ReorderServicesDto) {
+        return this.servicesService.reorder(dto.ids);
     }
 
     @Get('get-service/:id')

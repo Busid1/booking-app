@@ -2,10 +2,9 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AppointmentService } from './appointment.service';
 import { AppointmentController } from './appointment.controller';
-import { GoogleCalendarModule } from '../google-calendar/google-calendar.module';
 
 @Module({
-  imports: [PrismaModule, GoogleCalendarModule],
+  imports: [PrismaModule],
   controllers: [AppointmentController],
   providers: [AppointmentService],
 })

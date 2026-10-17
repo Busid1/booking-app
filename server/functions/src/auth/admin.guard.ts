@@ -17,3 +17,17 @@ export const AdminOnly = () => applyDecorators(UseGuards(AuthGuard('jwt'), Admin
 
 /** Requiere un JWT válido (cualquier rol). */
 export const Authenticated = () => applyDecorators(UseGuards(AuthGuard('jwt')));
+
+@Injectable()
+export class StaffOrAdminGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const { user } = context.switchToHttp().getRequest();
+    if (user?.role !== 'admin' && user?.role !== 'staff') {
+      throw new ForbiddenException('No tienes permisos para realizar esta acción');
+    }
+    return true;
+  }
+}
+
+/** Requiere un JWT de administrador o de trabajador. */
+export const StaffOrAdmin = () => applyDecorators(UseGuards(AuthGuard('jwt'), StaffOrAdminGuard));

@@ -12,7 +12,8 @@ const DEFAULT_ORIGINS: (string | RegExp)[] = [
 ];
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: necesario para verificar la firma de los webhooks de Stripe.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   const extraOrigins = (process.env.CORS_ORIGINS ?? '').split(',').map(o => o.trim()).filter(Boolean);
   app.enableCors({

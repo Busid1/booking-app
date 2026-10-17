@@ -1,12 +1,12 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { LoginDto } from '../dto/login.dto';
-import { RegisterDto } from '../dto/register.dto';
+import { RegisterDto, UpdateProfileDto } from '../dto/register.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { AuthUser } from './auth-user.interface';
 
-const publicUserSelect = { id: true, email: true, name: true, role: true, createdAt: true };
+const publicUserSelect = { id: true, email: true, name: true, phone: true, role: true, createdAt: true };
 
 @Injectable()
 export class AuthService {
@@ -56,5 +56,14 @@ export class AuthService {
     const user = await this.prismaService.user.findUnique({ where: { id: userId }, select: publicUserSelect });
     if (!user) throw new UnauthorizedException('Sesión no válida');
     return user;
+  }
+
+  /** Actualiza nombre y teléfono y devuelve una sesión nueva (el token incluye el nombre). */
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.prismaService.user.update({
+      where: { id: userId },
+      data: { name: dto.name.trim(), phone: dto.phone !== undefined ? dto.phone.trim() || null : undefined },
+    });
+    return this.buildSession(user);
   }
 }
