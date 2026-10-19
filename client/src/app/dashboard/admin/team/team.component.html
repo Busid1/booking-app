@@ -10,11 +10,11 @@
 
   <section class="mt-8">
     @if (isLoading()) {
-      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         @for (i of [1, 2, 3]; track i) { <div class="skeleton h-56"></div> }
       </div>
     } @else {
-      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         @for (member of staff(); track member.id; let i = $index) {
           <article class="card flex animate-slide-up flex-col p-5" [style.animation-delay.ms]="i * 50" [class.opacity-60]="!member.active">
             <div class="flex items-start gap-4">
@@ -68,7 +68,7 @@
 <app-modal [open]="formOpen()" (closed)="formOpen.set(false)" size="lg" [title]="editing() ? 'Editar profesional' : 'Nuevo profesional'"
   subtitle="La foto se cambia desde la tarjeta del profesional.">
   <form id="staffForm" (ngSubmit)="save()" class="space-y-6">
-    <div class="grid gap-4 sm:grid-cols-[1fr_auto]">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto]">
       <div>
         <label class="label" for="st-name">Nombre</label>
         <input id="st-name" name="name" class="input" maxlength="80" required [(ngModel)]="form.name" />

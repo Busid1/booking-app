@@ -11,7 +11,7 @@
         <a routerLink="/servicios" class="btn btn-ghost">Ver todos <i class="fas fa-arrow-right text-xs"></i></a>
       </div>
 
-      <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         @for (service of featured(); track service.id; let i = $index) {
           <a routerLink="/servicios" [queryParams]="auth.isAdmin() ? {} : { reservar: service.id }"
             class="card group flex animate-slide-up flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-lift"
@@ -45,7 +45,7 @@
           <h2 class="mt-1 text-2xl font-extrabold sm:text-3xl">Elige a tu profesional</h2>
         </div>
       </div>
-      <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         @for (member of store.staff(); track member.id; let i = $index) {
           <a [routerLink]="auth.isAdmin() ? '/panel/equipo' : ['/reservar', member.slug]"
             class="card group flex animate-slide-up flex-col items-center p-6 text-center transition hover:-translate-y-1 hover:shadow-lift"
@@ -84,7 +84,7 @@
         </div>
       </div>
       @if (latestReviews().length) {
-        <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           @for (review of latestReviews(); track review.id; let i = $index) {
             <figure class="card flex animate-slide-up flex-col p-5" [style.animation-delay.ms]="i * 60">
               <app-stars [value]="review.rating" />
