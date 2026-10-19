@@ -32,7 +32,7 @@
       </div>
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
         <label class="label" for="ap-email">Email <span class="font-normal text-slate-400">(opcional)</span></label>
         <input id="ap-email" name="clientEmail" type="email" class="input" maxlength="120" placeholder="Para enviarle la confirmación"
@@ -45,7 +45,7 @@
       </div>
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-3">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <div>
         <label class="label" for="ap-date">Fecha</label>
         <input id="ap-date" name="date" type="date" class="input" [min]="isEdit ? '' : minDate"
