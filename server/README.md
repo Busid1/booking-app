@@ -22,6 +22,8 @@ Para cambiar solo variables (sin reconstruir): `gcloud run services update bookl
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Para señales | Cobro de señal online en los servicios que la tengan |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | No | Sincronización con Google Calendar |
 | `GOOGLE_CALENDAR_ID` | No | Calendario por defecto si no se indica en la web (Información → Reservas). Cada profesional puede tener el suyo |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Para avisos push | Notificaciones en el móvil y el ordenador (app instalada) |
+| `VAPID_SUBJECT` | No | Contacto para los servicios push, p. ej. `mailto:tu@email.com` |
 | `BUSINESS_TIMEZONE` | No | Zona horaria (por defecto `Europe/Madrid`) |
 | `CORS_ORIGINS` | No | Orígenes extra permitidos, separados por comas |
 
@@ -70,6 +72,19 @@ la *site key* → `TURNSTILE_SITE_KEY` y la *secret key* → `TURNSTILE_SECRET_K
    de Google» (ahí también se muestra el email de la cuenta de servicio con el que compartirlo).
    Para el calendario propio de un profesional, compártelo igual y pon su ID en Panel → Equipo →
    Opciones avanzadas.
+
+### Notificaciones push (app instalable)
+1. Genera las claves una sola vez (no las cambies después o los dispositivos tendrán que volver a activar los avisos):
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+2. Copia *Public Key* → `VAPID_PUBLIC_KEY` y *Private Key* → `VAPID_PRIVATE_KEY`, y pon
+   `VAPID_SUBJECT: "mailto:tu@email.com"`.
+3. En la web, pulsa el icono de la campana («Activar avisos») en cada dispositivo.
+   - Negocio (administradores y profesionales con acceso): nueva reserva y cancelación por el cliente.
+   - Clientes: recordatorio antes de la cita, cambio de hora y cancelación por el negocio.
+   - En iPhone (iOS 16.4 o superior) los avisos solo funcionan con la web instalada:
+     Safari → Compartir → «Añadir a pantalla de inicio».
 
 ### Profesionales con acceso a su agenda
 El profesional se registra en la web; después, en Panel → Equipo → Opciones avanzadas,

@@ -34,4 +34,6 @@ export interface PublicConfig {
     googleCalendar: boolean;
     googleServiceAccountEmail?: string | null;
     timeZone: string;
+    /** Clave pública para notificaciones push (null = desactivadas en el servidor). */
+    vapidPublicKey?: string | null;
 }

@@ -19,6 +19,7 @@ model User {
   appointments Appointment[]
   reviews      Review[]
   staff        Staff?
+  pushSubs     PushSubscription[]
 }
 
 model Service {
@@ -158,4 +159,21 @@ model Review {
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   staff         Staff?       @relation(fields: [staffId], references: [id], onDelete: SetNull)
   createdAt     DateTime     @default(now())
+}
+
+/// Dispositivo suscrito a notificaciones push (Web Push).
+model PushSubscription {
+  id          String   @id @default(uuid())
+  endpoint    String   @unique
+  p256dh      String
+  auth        String
+  /// Usuario con sesión iniciada al suscribirse (admin, profesional o cliente)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Códigos de citas reservadas sin cuenta desde este dispositivo
+  manageTokens String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }

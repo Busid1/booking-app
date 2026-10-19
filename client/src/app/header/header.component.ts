@@ -6,6 +6,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../auth/auth.service';
 import { alerts } from '../shared/services/alerts';
 import { SharedService } from '../shared/services/shared.service';
+import { PwaService } from '../shared/services/pwa.service';
 
 @Component({
   selector: 'app-header',
@@ -16,6 +17,7 @@ import { SharedService } from '../shared/services/shared.service';
 export default class HeaderComponent {
   readonly auth = inject(AuthService);
   readonly store = inject(SharedService);
+  readonly pwa = inject(PwaService);
   private router = inject(Router);
   private host = inject(ElementRef<HTMLElement>);
 
@@ -52,6 +54,29 @@ export default class HeaderComponent {
       .slice(0, 2)
       .map(part => part[0]?.toUpperCase() ?? '')
       .join('');
+  }
+
+  install() {
+    this.closeMenus();
+    this.pwa.install();
+  }
+
+  async togglePush() {
+    this.closeMenus();
+    try {
+      if (this.pwa.pushState() === 'on') {
+        await this.pwa.disablePush();
+        alerts.info('Avisos desactivados');
+      } else if (await this.pwa.enablePush()) {
+        alerts.success('Avisos activados');
+      }
+    } catch {
+      if (this.pwa.pushState() === 'blocked') {
+        alerts.warning('Has bloqueado los avisos', 'Permite las notificaciones de esta web en los ajustes del navegador.');
+      } else {
+        alerts.warning('No se han podido activar los avisos', 'Inténtalo de nuevo en unos segundos.');
+      }
+    }
   }
 
   logout() {

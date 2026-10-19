@@ -57,6 +57,7 @@
                   <i class="fas fa-calendar-days w-4 text-slate-400"></i> Mis citas
                 </a>
               }
+              <ng-container *ngTemplateOutlet="appItems; context: { $implicit: 'px-3 py-2' }"></ng-container>
               <button type="button" (click)="logout()" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50" role="menuitem">
                 <i class="fas fa-arrow-right-from-bracket w-4"></i> Cerrar sesión
               </button>
@@ -89,12 +90,14 @@
               <p class="truncate text-xs text-slate-500">{{ auth.user()?.email }}</p>
             </div>
           </li>
+          <li><ng-container *ngTemplateOutlet="appItems; context: { $implicit: 'px-3 py-2.5' }"></ng-container></li>
           <li>
             <button type="button" (click)="logout()" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50">
               <i class="fas fa-arrow-right-from-bracket w-4"></i> Cerrar sesión
             </button>
           </li>
         } @else {
+          <li><ng-container *ngTemplateOutlet="appItems; context: { $implicit: 'px-3 py-2.5' }"></ng-container></li>
           <li class="grid grid-cols-2 gap-2 p-1">
             <a routerLink="/auth/login" class="btn btn-secondary">Iniciar sesión</a>
             <a routerLink="/auth/register" class="btn btn-primary">Crear cuenta</a>
@@ -140,5 +143,22 @@
         <i class="fas fa-ticket text-xs opacity-70"></i> Mis citas
       </a>
     </li>
+  }
+</ng-template>
+
+<!-- Instalar la app y avisos en este dispositivo -->
+<ng-template #appItems let-pad>
+  @if (pwa.canInstall()) {
+    <button type="button" (click)="install()" role="menuitem"
+      class="flex w-full items-center gap-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50" [class]="pad">
+      <i class="fas fa-mobile-screen-button w-4 text-slate-400"></i> Instalar app
+    </button>
+  }
+  @if (pwa.pushState() === 'on' || pwa.pushState() === 'off') {
+    <button type="button" (click)="togglePush()" role="menuitem"
+      class="flex w-full items-center gap-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50" [class]="pad">
+      <i class="fas w-4 text-slate-400" [class.fa-bell]="pwa.pushState() === 'off'" [class.fa-bell-slash]="pwa.pushState() === 'on'"></i>
+      {{ pwa.pushState() === 'on' ? 'Desactivar avisos' : 'Activar avisos' }}
+    </button>
   }
 </ng-template>

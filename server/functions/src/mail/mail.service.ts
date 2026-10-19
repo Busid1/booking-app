@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { appConfig } from '../common/app-config';
 import { escapeHtml } from '../common/html';
+import { nowInBusinessTimezone } from '../common/time.utils';
 
 export interface AppointmentEmailData {
   businessName: string;
@@ -61,7 +62,8 @@ export class MailService {
 
   // ---------- Plantillas ----------
 
-  private formatDate(date: string): string {
+  /** «Lunes, 20 de octubre» a partir de YYYY-MM-DD. */
+  formatDate(date: string): string {
     const [y, m, d] = date.split('-').map(Number);
     const text = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
       .format(new Date(Date.UTC(y, m - 1, d)));
@@ -136,7 +138,7 @@ ${data.depositPaid ? row('Señal pagada', this.money(data.depositPaid)) : ''}
     const manageUrl = data.manageToken ? `${appConfig.webUrl}/cita/${data.manageToken}` : `${appConfig.webUrl}/mis-citas`;
     const body = `${this.detailsTable(data)}<div style="margin-top:22px">${this.button(manageUrl, 'Ver o cancelar cita', '', true)}</div>`;
     return {
-      subject: `Recordatorio: tu cita es mañana a las ${data.startTime}`,
+      subject: `Recordatorio: tu cita es ${data.date === nowInBusinessTimezone().date ? 'hoy' : 'mañana'} a las ${data.startTime}`,
       html: this.layout(data, 'Recordatorio de tu cita', `Hola ${escapeHtml(data.clientName)}, te recordamos que tienes una cita próximamente:`, body),
     };
   }

@@ -1,13 +1,15 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../auth/auth.service';
+import { PwaCardComponent } from '../../../shared/services/pwa-card.component';
 
 /** Contenedor del panel con pestañas: agenda, equipo y reseñas. */
 @Component({
   selector: 'app-panel-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, PwaCardComponent],
   template: `
+    <app-pwa-card audience="business" class="container-page mb-6 block empty:hidden" />
     @if (auth.isAdmin()) {
       <div class="container-page mb-6">
         <nav class="inline-flex max-w-full gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-sm" aria-label="Secciones del panel">

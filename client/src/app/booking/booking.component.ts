@@ -18,6 +18,7 @@ import { StaffInterface } from '../shared/interfaces/staff.interface';
 import { BusinessHoursInterface } from '../shared/interfaces/business-hours.interface';
 import { addDays, addMinutes, formatDuration, fromDateKey, mondayBasedDay, toDateKey } from '../shared/services/time.utils';
 import { alerts, getErrorMessage } from '../shared/services/alerts';
+import { PwaCardComponent } from '../shared/services/pwa-card.component';
 
 type Step = 'staff' | 'datetime' | 'details' | 'done';
 
@@ -39,7 +40,7 @@ interface GuestContact {
   standalone: true,
   imports: [
     DatePickerComponent, ModalComponent, CurrencyPipe, DatePipe, RouterLink, FormsModule,
-    TurnstileComponent, StaffAvatarComponent, StarRatingComponent,
+    TurnstileComponent, StaffAvatarComponent, StarRatingComponent, PwaCardComponent,
   ],
 })
 export class BookingComponent implements OnChanges {

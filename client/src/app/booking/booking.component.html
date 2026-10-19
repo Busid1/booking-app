@@ -198,6 +198,7 @@
             @if (!auth.isLoggedIn()) {
               <p class="mt-3 max-w-sm text-sm text-slate-400">La cita queda guardada en este dispositivo: puedes verla o cancelarla desde «Mis citas».</p>
             }
+            <app-pwa-card class="mt-6 block w-full empty:hidden" [compact]="true" />
           </div>
         }
       }
