@@ -3,6 +3,7 @@ import { appConfig } from '../common/app-config';
 import { MailService } from '../mail/mail.service';
 import { StripeService } from '../payments/stripe.service';
 import { GoogleCalendarService } from '../google-calendar/googleCalendar.service';
+import { PushService } from '../push/push.service';
 
 /** Configuración pública que necesita la web (sin secretos). */
 @Controller('config')
@@ -11,6 +12,7 @@ export class PublicConfigController {
     private readonly mail: MailService,
     private readonly stripe: StripeService,
     private readonly calendar: GoogleCalendarService,
+    private readonly push: PushService,
   ) {}
 
   @Get()
@@ -23,6 +25,8 @@ export class PublicConfigController {
       /** Con este email hay que compartir el calendario de Google. */
       googleServiceAccountEmail: this.calendar.serviceAccountEmail,
       timeZone: appConfig.timeZone,
+      /** Clave pública VAPID para las notificaciones push (null = desactivadas). */
+      vapidPublicKey: this.push.publicKey,
     };
   }
 }

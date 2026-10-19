@@ -12,6 +12,7 @@ import { StarRatingComponent } from '../../../shared/services/star-rating.compon
 import { ManagedAppointment } from '../../../shared/interfaces/appointment.interface';
 import { fromDateKey, isPast, todayKey, toMinutes, nowTime } from '../../../shared/services/time.utils';
 import { alerts } from '../../../shared/services/alerts';
+import { PwaCardComponent } from '../../../shared/services/pwa-card.component';
 
 type Tab = 'upcoming' | 'past';
 
@@ -29,12 +30,11 @@ interface MyAppointment {
   review?: { rating: number } | null;
   guest: boolean;
 }
-
 @Component({
   selector: 'app-appointments',
   templateUrl: './appointments.component.html',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, RouterLink, ReviewFormComponent, StaffAvatarComponent, StarRatingComponent],
+  imports: [CurrencyPipe, DatePipe, RouterLink, ReviewFormComponent, StaffAvatarComponent, StarRatingComponent, PwaCardComponent],
 })
 export class AppointmentsComponent implements OnInit {
   private store = inject(SharedService);

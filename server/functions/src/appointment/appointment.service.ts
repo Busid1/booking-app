@@ -10,6 +10,7 @@ import { AuthUser } from '../auth/auth-user.interface';
 import { SchedulingService, StaffWithHours } from '../scheduling/scheduling.service';
 import { MailService, AppointmentEmailData } from '../mail/mail.service';
 import { StripeService } from '../payments/stripe.service';
+import { PushService } from '../push/push.service';
 import { appConfig } from '../common/app-config';
 import { assertUnderLimit, rateLimit, recordHit } from '../common/rate-limit';
 import { verifyTurnstile } from '../common/turnstile';
@@ -39,6 +40,7 @@ export class AppointmentService {
         private readonly scheduling: SchedulingService,
         private readonly mail: MailService,
         private readonly stripe: StripeService,
+        private readonly push: PushService,
     ) { }
 
     // ---------------------------------------------------------------- utilidades
@@ -124,6 +126,28 @@ export class AppointmentService {
         return a;
     }
 
+    // ---------------------------------------------------------------- notificaciones push
+
+    /** Administradores y el profesional de la cita (si tiene acceso a la web). */
+    private async businessPushTarget(a: FullAppointment) {
+        const staffUser = a.staffId
+            ? await this.prisma.staff.findUnique({ where: { id: a.staffId }, select: { userId: true } })
+            : null;
+        return { userIds: [...(await this.push.adminUserIds()), staffUser?.userId] };
+    }
+
+    private clientPushTarget(a: FullAppointment) {
+        return { userIds: [a.userId], manageTokens: [a.manageToken] };
+    }
+
+    private whenText(a: { date: string; startTime: string }): string {
+        return `${this.mail.formatDate(a.date)} a las ${a.startTime}`;
+    }
+
+    private clientUrl(a: FullAppointment): string {
+        return a.manageToken ? `/cita/${a.manageToken}` : '/mis-citas';
+    }
+
     /** Evento de Google Calendar + emails al confirmar una cita. Nunca lanza. */
     private async afterConfirmed(a: FullAppointment): Promise<FullAppointment> {
         try {
@@ -138,13 +162,20 @@ export class AppointmentService {
             const toBusiness = this.mail.businessNotification(
                 { ...data, clientEmail: this.clientEmailOf(a), clientPhone: a.clientPhone || a.user?.phone }, 'new');
             await this.mail.send(process.env.NOTIFY_EMAIL || info?.email, toBusiness.subject, toBusiness.html, this.clientEmailOf(a));
+            await this.push.send(await this.businessPushTarget(a), {
+                title: `Nueva reserva · ${this.clientNameOf(a)}`,
+                body: `${a.service.title}${a.staff ? ` con ${a.staff.name}` : ''}\n${this.whenText(a)}`,
+                url: '/panel',
+                tag: `appointment-${a.id}`,
+            });
         } catch (error) {
             this.logger.error('Error en tareas posteriores a la confirmación', error as Error);
         }
         return a;
     }
 
-    private async afterCancelled(a: FullAppointment, notifyClient: boolean) {
+    /** `byBusiness`: la cancela el negocio (avisa al cliente) o el propio cliente (avisa al negocio). */
+    private async afterCancelled(a: FullAppointment, notifyClient: boolean, byBusiness: boolean) {
         try {
             await this.googleCalendar.deleteEvent(a.googleEventId, a.staff?.calendarId);
             if (a.status !== 'confirmed') return;
@@ -157,6 +188,21 @@ export class AppointmentService {
             const toBusiness = this.mail.businessNotification(
                 { ...data, clientEmail: this.clientEmailOf(a), clientPhone: a.clientPhone || a.user?.phone }, 'cancelled');
             await this.mail.send(process.env.NOTIFY_EMAIL || info?.email, toBusiness.subject, toBusiness.html);
+            if (byBusiness) {
+                await this.push.send(this.clientPushTarget(a), {
+                    title: 'Tu cita ha sido cancelada',
+                    body: `${a.service.title} · ${this.whenText(a)}`,
+                    url: '/servicios',
+                    tag: `appointment-${a.id}`,
+                });
+            } else {
+                await this.push.send(await this.businessPushTarget(a), {
+                    title: `Cita cancelada · ${this.clientNameOf(a)}`,
+                    body: `${a.service.title}${a.staff ? ` con ${a.staff.name}` : ''}\n${this.whenText(a)}`,
+                    url: '/panel',
+                    tag: `appointment-${a.id}`,
+                });
+            }
         } catch (error) {
             this.logger.error('Error en tareas posteriores a la cancelación', error as Error);
         }
@@ -364,6 +410,14 @@ export class AppointmentService {
             if (newEventId !== updated.googleEventId) {
                 updated = await this.prisma.appointment.update({ where: { id }, data: { googleEventId: newEventId }, include: fullInclude });
             }
+            if (existing.date !== updated.date || existing.startTime !== updated.startTime) {
+                await this.push.send(this.clientPushTarget(updated), {
+                    title: 'Tu cita ha cambiado de hora',
+                    body: `${updated.service.title}\nNueva fecha: ${this.whenText(updated)}`,
+                    url: this.clientUrl(updated),
+                    tag: `appointment-${updated.id}`,
+                });
+            }
         }
         return updated;
     }
@@ -416,7 +470,7 @@ export class AppointmentService {
         }
 
         await this.prisma.appointment.delete({ where: { id } });
-        await this.afterCancelled(appointment, user.role === 'admin');
+        await this.afterCancelled(appointment, user.role === 'admin', user.role === 'admin');
         return { success: true, message: 'Cita eliminada correctamente' };
     }
 
@@ -474,7 +528,7 @@ export class AppointmentService {
         const a = await this.findByToken(token);
         await this.assertCanCancel(a);
         await this.prisma.appointment.delete({ where: { id: a.id } });
-        await this.afterCancelled(a, true);
+        await this.afterCancelled(a, true, false);
         return { success: true, message: 'Cita cancelada correctamente' };
     }
 
@@ -534,11 +588,19 @@ export class AppointmentService {
         for (const a of candidates) {
             const minutes = minutesUntil(a.date, a.startTime);
             if (minutes <= 0 || minutes > 24 * 60) continue;
+            let delivered = false;
             const email = this.clientEmailOf(a);
             if (email) {
                 const mail = this.mail.reminderEmail(await this.emailData(a));
-                if (await this.mail.send(email, mail.subject, mail.html, this.replyToOf(await this.businessInfo()))) sent++;
+                delivered = await this.mail.send(email, mail.subject, mail.html, this.replyToOf(await this.businessInfo()));
             }
+            const pushed = await this.push.send(this.clientPushTarget(a), {
+                title: `Recordatorio: ${a.service.title}`,
+                body: `${a.date === today ? 'Hoy' : 'Mañana'} a las ${a.startTime}${a.staff ? ` con ${a.staff.name}` : ''}`,
+                url: this.clientUrl(a),
+                tag: `reminder-${a.id}`,
+            });
+            if (delivered || pushed) sent++;
             await this.prisma.appointment.update({ where: { id: a.id }, data: { reminderSentAt: new Date() } });
         }
         return { checked: candidates.length, sent };

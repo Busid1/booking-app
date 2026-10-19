@@ -14,6 +14,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { StaffModule } from './staff/staff.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { PublicConfigModule } from './config/config.module';
+import { PushModule } from './push/push.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PublicConfigModule } from './config/config.module';
     GoogleCalendarModule,
     SchedulingModule,
     MailModule,
+    PushModule,
     PaymentsModule,
     StaffModule,
     ReviewsModule,
